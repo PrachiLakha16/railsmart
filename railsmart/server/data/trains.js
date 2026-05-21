@@ -8,6 +8,13 @@ const trains = [
     departureTime: '16:25',
     arrivalTime: '08:15',
     duration: '15h 50m',
+    isAlternate:   false,
+     stops: [
+      { station: 'Delhi',    departureTime: '16:25', arrivalTime: null,   dayOffset: 0 },
+      { station: 'Kota',     departureTime: '21:05', arrivalTime: '21:00', dayOffset: 0 },
+      { station: 'Vadodara', departureTime: '03:05', arrivalTime: '03:00', dayOffset: 1 },
+      { station: 'Mumbai',   departureTime: null,    arrivalTime: '08:15', dayOffset: 1 }
+    ],
     runningDays: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
     stopsAt: ['Kota', 'Vadodara', 'Surat'],
     classes: [
@@ -25,6 +32,14 @@ const trains = [
     departureTime: '17:40',
     arrivalTime: '10:55',
     duration: '17h 15m',
+    isAlternate:   false,
+     stops: [
+      { station: 'Delhi',    departureTime: '17:40', arrivalTime: null,   dayOffset: 0 },
+      { station: 'Kota',     departureTime: '22:30', arrivalTime: '22:20', dayOffset: 0 },
+      { station: 'Vadodara', departureTime: '04:45', arrivalTime: '04:30', dayOffset: 1 },
+      { station: 'Surat',    departureTime: '06:00', arrivalTime: '05:50', dayOffset: 1 },
+      { station: 'Mumbai',   departureTime: null,    arrivalTime: '10:55', dayOffset: 1 }
+    ],
     runningDays: ['Mon', 'Wed', 'Fri', 'Sun'],
     stopsAt: ['Kota', 'Vadodara'],
     classes: [
@@ -42,6 +57,17 @@ const trains = [
     departureTime: '04:00',
     arrivalTime: '23:55',
     duration: '19h 55m',
+     isAlternate:   false,
+      stops: [
+      { station: 'Delhi',    departureTime: '04:00', arrivalTime: null,   dayOffset: 0 },
+      { station: 'Mathura',  departureTime: '05:45', arrivalTime: '05:40', dayOffset: 0 },
+      { station: 'Agra',     departureTime: '06:30', arrivalTime: '06:25', dayOffset: 0 },
+      { station: 'Gwalior',  departureTime: '08:00', arrivalTime: '07:55', dayOffset: 0 },
+      { station: 'Jhansi',   departureTime: '09:15', arrivalTime: '09:10', dayOffset: 0 },
+      { station: 'Bhopal',   departureTime: '12:30', arrivalTime: '12:20', dayOffset: 0 },
+      { station: 'Surat',    departureTime: '21:30', arrivalTime: '21:15', dayOffset: 0 },
+      { station: 'Mumbai',   departureTime: null,    arrivalTime: '23:55', dayOffset: 0 }
+    ],
     runningDays: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
     stopsAt: ['Mathura', 'Kota', 'Ratlam', 'Surat', 'Vadodara'],
     classes: [

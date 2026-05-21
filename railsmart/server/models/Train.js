@@ -39,6 +39,14 @@ const trainSchema = new mongoose.Schema({
       confirmChance: Number
     }
   ],
+  stops: [
+  {
+    station:       { type: String, required: true },
+    arrivalTime:   { type: String, default: null },   // null for origin
+    departureTime: { type: String, default: null },   // null for destination
+    dayOffset:     { type: Number, default: 0 }       // 0=same day, 1=next day, 2=day after
+  }
+],
   runningDays: [String],
   stopsAt: [String],
   isAlternate: {
