@@ -2,63 +2,7 @@ import { useState, useEffect } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import Navbar from '../components/Navbar'
 import TrainCard from '../components/TrainCard'
-
-// Mock data for now — real data comes on Day 6
-const mockTrains = [
-  {
-    _id: '1',
-    trainNumber: '12951',
-    trainName: 'Rajdhani Express',
-    source: 'Delhi',
-    destination: 'Mumbai',
-    departureTime: '16:25',
-    arrivalTime: '08:15',
-    duration: '15h 50m',
-    rating: 4.2,
-    isAlternate: false,
-    classes: [
-      { className: 'SL', price: 710, availableSeats: 0, waitlistCount: 44, confirmChance: 47 },
-      { className: '3A', price: 1800, availableSeats: 0, waitlistCount: 44, confirmChance: 41 },
-      { className: '2A', price: 2555, availableSeats: 0, waitlistCount: 24, confirmChance: 42 },
-      { className: '1A', price: 4295, availableSeats: 3, waitlistCount: 0, confirmChance: 100 }
-    ]
-  },
-  {
-    _id: '2',
-    trainNumber: '12904',
-    trainName: 'Golden Temple Mail',
-    source: 'Delhi',
-    destination: 'Mumbai',
-    departureTime: '04:00',
-    arrivalTime: '23:55',
-    duration: '19h 55m',
-    rating: 4.0,
-    isAlternate: false,
-    classes: [
-      { className: 'SL', price: 655, availableSeats: 0, waitlistCount: 69, confirmChance: 70 },
-      { className: '3A', price: 1670, availableSeats: 0, waitlistCount: 63, confirmChance: 70 },
-      { className: '2A', price: 2365, availableSeats: 0, waitlistCount: 24, confirmChance: 89 },
-      { className: '1A', price: 3970, availableSeats: 8, waitlistCount: 0, confirmChance: 100 }
-    ]
-  },
-  {
-    _id: '3',
-    trainNumber: 'ALT-001',
-    trainName: 'Via Surat — Alternate Route',
-    source: 'Delhi',
-    destination: 'Mumbai',
-    departureTime: '06:00',
-    arrivalTime: '22:00',
-    duration: '16h 00m',
-    rating: 3.8,
-    isAlternate: true,
-    viaStation: 'Surat',
-    classes: [
-      { className: 'SL', price: 580, availableSeats: 12, waitlistCount: 0, confirmChance: 100 },
-      { className: '3A', price: 1450, availableSeats: 6, waitlistCount: 0, confirmChance: 100 },
-    ]
-  }
-]
+import axios from 'axios'
 
 function TrainList() {
   const [searchParams] = useSearchParams()
@@ -68,15 +12,76 @@ function TrainList() {
   const to = searchParams.get('to')
   const date = searchParams.get('date')
   const showCheapest = searchParams.get('cheapest') === 'true'
+  const selectedClass = searchParams.get('class')
 
-  const [trains, setTrains] = useState(mockTrains)
+  const [originalDate] = useState(date)
+  const [selectedDate, setSelectedDate] = useState(date)
+  const [trains, setTrains] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
   const [sortBy, setSortBy] = useState('recommended')
   const [departureFilter, setDepartureFilter] = useState([])
   const [showAlternate, setShowAlternate] = useState(showCheapest)
 
-  // Sort trains based on filter
+  // Fetch trains from backend
+  useEffect(() => {
+    const fetchTrains = async () => {
+      try {
+        setLoading(true)
+        setError('')
+        const res = await axios.get(
+          `http://localhost:5000/api/trains/search?from=${from}&to=${to}&class=${selectedClass}`
+        )
+        setTrains(res.data.trains)
+      } catch (err) {
+        setError(err.response?.data?.message || 'No trains found for this route')
+        setTrains([])
+      }
+      setLoading(false)
+    }
+    fetchTrains()
+  }, [from, to, selectedClass])
+
+  // Generate 10 days from original search date
+  const generateDates = () => {
+    const dates = []
+    for (let i = 0; i < 10; i++) {
+      const d = new Date(originalDate)
+      d.setDate(d.getDate() + i)
+      const dateStr = d.toISOString().split('T')[0]
+      const dayName = d.toLocaleDateString('en-IN', { weekday: 'short' })
+      const dayNum = d.getDate()
+      const month = d.toLocaleDateString('en-IN', { month: 'short' })
+      dates.push({ dateStr, label: `${dayName} ${dayNum} ${month}` })
+    }
+    return dates
+  }
+
+  // Handle date click
+  const handleDateClick = (dateStr) => {
+    setSelectedDate(dateStr)
+    navigate(
+      `/trains?from=${from}&to=${to}&date=${dateStr}&class=${selectedClass}&cheapest=${showCheapest}`,
+      { replace: true }
+    )
+  }
+
+  // Sort and filter trains
   const getSortedTrains = () => {
     let filtered = showAlternate ? trains : trains.filter(t => !t.isAlternate)
+
+    if (departureFilter.length > 0) {
+      filtered = filtered.filter(train => {
+        const hour = parseInt(train.departureTime.split(':')[0])
+        return departureFilter.some(slot => {
+          if (slot === 'early') return hour >= 0 && hour < 6
+          if (slot === 'morning') return hour >= 6 && hour < 12
+          if (slot === 'afternoon') return hour >= 12 && hour < 18
+          if (slot === 'night') return hour >= 18 && hour < 24
+          return true
+        })
+      })
+    }
 
     if (sortBy === 'cheapest') {
       return [...filtered].sort((a, b) => {
@@ -94,13 +99,27 @@ function TrainList() {
       })
     }
 
-    if (sortBy === 'wlChance') {
-      return [...filtered].sort((a, b) => {
-        const aChance = Math.max(...a.classes.map(c => c.confirmChance))
-        const bChance = Math.max(...b.classes.map(c => c.confirmChance))
-        return bChance - aChance
-      })
+   if (sortBy === 'wlChance') {
+  return [...filtered].sort((a, b) => {
+    // Step 1: get confirm chance for user's selected class
+    const getClassProb = (train) => {
+      const cls = train.classes.find(c => c.type === selectedClass)
+      return cls ? cls.confirmChance : -1
     }
+
+    const aProb = getClassProb(a)
+    const bProb = getClassProb(b)
+
+    // Step 2: sort descending by user's chosen class
+    if (bProb !== aProb) return bProb - aProb
+
+    // Step 3: tiebreak → avg confirmChance across all classes
+    const avgProb = (train) =>
+      train.classes.reduce((sum, c) => sum + c.confirmChance, 0) / train.classes.length
+
+    return avgProb(b) - avgProb(a)
+  })
+}
 
     return filtered
   }
@@ -113,33 +132,33 @@ function TrainList() {
 
         {/* Heading */}
         <h5 className="fw-bold mb-1">{from} to {to} Trains</h5>
-        <p className="text-muted small mb-3">
-          Showing trains for {date}
-        </p>
+        <p className="text-muted small mb-3">Showing trains for {selectedDate}</p>
 
         {/* Date Strip */}
-        <div className="card mb-3 p-2 shadow-sm">
-          <div className="d-flex gap-3 overflow-auto">
-            {[0, 1, 2, 3, 4, 5].map(i => {
-              const d = new Date(date)
-              d.setDate(d.getDate() + i)
-              const label = d.toDateString().slice(0, 10)
-              return (
-                <div
-                  key={i}
-                  className="text-center px-3 py-1 rounded"
-                  style={{
-                    cursor: 'pointer',
-                    backgroundColor: i === 0 ? '#e63946' : 'white',
-                    color: i === 0 ? 'white' : 'black',
-                    minWidth: '80px',
-                    border: '1px solid #dee2e6'
-                  }}
-                >
-                  <div className="small fw-semibold">{label}</div>
-                </div>
-              )
-            })}
+        <div className="card mb-3 shadow-sm">
+          <div
+            className="d-flex overflow-auto p-2 gap-2"
+            style={{ scrollbarWidth: 'thin' }}
+          >
+            {generateDates().map(({ dateStr, label }) => (
+              <div
+                key={dateStr}
+                className="text-center px-3 py-2 rounded flex-shrink-0"
+                style={{
+                  cursor: 'pointer',
+                  backgroundColor: selectedDate === dateStr ? '#e63946' : 'white',
+                  color: selectedDate === dateStr ? 'white' : '#333',
+                  minWidth: '90px',
+                  border: selectedDate === dateStr
+                    ? '2px solid #e63946'
+                    : '1px solid #dee2e6',
+                  transition: 'all 0.2s'
+                }}
+                onClick={() => handleDateClick(dateStr)}
+              >
+                <div className="small fw-semibold">{label}</div>
+              </div>
+            ))}
           </div>
         </div>
 
@@ -237,7 +256,14 @@ function TrainList() {
 
           {/* Train Cards */}
           <div className="col-md-9">
-            {getSortedTrains().length === 0 ? (
+            {loading ? (
+              <div className="text-center mt-5">
+                <div className="spinner-border text-danger" role="status"></div>
+                <p className="mt-2 text-muted">Searching trains...</p>
+              </div>
+            ) : error ? (
+              <div className="alert alert-warning mt-3">{error}</div>
+            ) : getSortedTrains().length === 0 ? (
               <div className="text-center text-muted mt-5">
                 No trains found for this route.
               </div>

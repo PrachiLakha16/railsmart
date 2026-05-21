@@ -1,4 +1,4 @@
- const mongoose = require('mongoose')
+const mongoose = require('mongoose')
 
 const trainSchema = new mongoose.Schema({
   trainNumber: {
@@ -31,15 +31,24 @@ const trainSchema = new mongoose.Schema({
   },
   classes: [
     {
-      className: String,    // SL, 3A, 2A, 1A
+      className: String,
       price: Number,
       totalSeats: Number,
       availableSeats: Number,
-      waitlistCount: Number
+      waitlistCount: Number,
+      confirmChance: Number
     }
   ],
-  runningDays: [String],    // ['Mon', 'Wed', 'Fri']
-  stopsAt: [String]         // intermediate stations
+  runningDays: [String],
+  stopsAt: [String],
+  isAlternate: {
+    type: Boolean,
+    default: false
+  },
+  viaStation: {
+    type: String,
+    default: null
+  }
 }, { timestamps: true })
 
 module.exports = mongoose.model('Train', trainSchema)
