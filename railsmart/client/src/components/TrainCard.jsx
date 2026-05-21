@@ -1,17 +1,28 @@
 function TrainCard({ train }) {
+
+  const getChanceColor = (chance) => {
+    if (chance >= 80) return '#1a7f37'
+    if (chance >= 50) return '#d97706'
+    return '#dc2626'
+  }
+
+  const getChanceBg = (chance) => {
+    if (chance >= 80) return '#dcfce7'
+    if (chance >= 50) return '#fef3c7'
+    return '#fee2e2'
+  }
+
   return (
-    <div className="card mb-3 shadow-sm">
-      <div className="card-body">
+    <div className="card mb-3 shadow-sm" style={{ borderRadius: '12px', border: '1px solid #e5e7eb' }}>
+      <div className="card-body p-3">
 
         {/* Train name and number */}
         <div className="d-flex justify-content-between align-items-center mb-2">
           <div>
-            <span className="fw-semibold">{train.trainNumber} {train.trainName}</span>
+            <span className="fw-bold" style={{ fontSize: '15px' }}>{train.trainNumber}</span>
+            <span className="text-muted ms-2" style={{ fontSize: '14px' }}>{train.trainName}</span>
             {train.isAlternate && (
-              <span
-                className="badge ms-2"
-                style={{ backgroundColor: '#e63946' }}
-              >
+              <span className="badge ms-2" style={{ backgroundColor: '#ede9fe', color: '#6d28d9', fontSize: '11px' }}>
                 Alternate Route
               </span>
             )}
@@ -19,15 +30,23 @@ function TrainCard({ train }) {
           <div className="text-muted small">⭐ {train.rating || 'N/A'}</div>
         </div>
 
-        {/* Time and duration */}
+        {/* Timing row */}
         <div className="d-flex align-items-center gap-3 mb-3">
-          <span className="fw-bold fs-5">{train.departureTime}</span>
           <div className="text-center">
-            <div className="text-muted small">{train.duration}</div>
-            <div style={{ borderTop: '1px solid #ccc', width: '80px' }}></div>
+            <div className="fw-bold" style={{ fontSize: '20px' }}>{train.departureTime}</div>
+            <div className="text-muted" style={{ fontSize: '11px' }}>{train.source}</div>
           </div>
-          <span className="fw-bold fs-5">{train.arrivalTime}</span>
-          <span className="text-muted small">{train.source} → {train.destination}</span>
+          <div className="flex-grow-1 text-center">
+            <div className="text-muted" style={{ fontSize: '11px' }}>{train.duration}</div>
+            <div style={{ borderTop: '1.5px dashed #d1d5db', margin: '4px 0' }}></div>
+            <div className="text-muted" style={{ fontSize: '10px' }}>
+              {train.daysOfWeek?.join(', ') || 'Daily'}
+            </div>
+          </div>
+          <div className="text-center">
+            <div className="fw-bold" style={{ fontSize: '20px' }}>{train.arrivalTime}</div>
+            <div className="text-muted" style={{ fontSize: '11px' }}>{train.destination}</div>
+          </div>
         </div>
 
         {/* Class boxes */}
@@ -35,41 +54,52 @@ function TrainCard({ train }) {
           {train.classes && train.classes.map((cls, index) => (
             <div
               key={index}
-              className="border rounded p-2 text-center"
+              className="text-center p-2"
               style={{
-                minWidth: '90px',
-                backgroundColor: cls.availableSeats === 0 ? '#fff8f0' : 'white',
-                borderColor: cls.waitlistCount > 0 ? '#ffc107' : '#dee2e6'
+                border: '1px solid #e5e7eb',
+                borderRadius: '8px',
+                minWidth: '85px',
+                backgroundColor: '#fafafa'
               }}
             >
-              <div className="fw-semibold small">{cls.className}</div>
-              <div className="small">₹{cls.price}</div>
+              <div className="fw-semibold" style={{ fontSize: '12px' }}>{cls.className}</div>
+              <div style={{ fontSize: '13px', color: '#111' }}>₹{cls.price}</div>
               {cls.waitlistCount > 0 ? (
                 <>
-                  <div className="fw-bold" style={{ color: '#e63946' }}>
+                  <div style={{ fontSize: '12px', color: '#dc2626', fontWeight: '600' }}>
                     WL {cls.waitlistCount}
                   </div>
-                  <div className="small text-success">
+                  <div style={{
+                    fontSize: '10px',
+                    fontWeight: '600',
+                    color: getChanceColor(cls.confirmChance),
+                    backgroundColor: getChanceBg(cls.confirmChance),
+                    borderRadius: '4px',
+                    padding: '1px 4px',
+                    marginTop: '2px'
+                  }}>
                     {cls.confirmChance}% Chance
                   </div>
                 </>
               ) : (
-                <div className="small text-success fw-semibold">Available</div>
+                <div style={{ fontSize: '11px', color: '#1a7f37', fontWeight: '600' }}>
+                  Available
+                </div>
               )}
             </div>
           ))}
         </div>
 
-        {/* WL Alert button — your unique feature */}
-        <div className="mt-3 d-flex gap-2">
+        {/* WL Alert + via station */}
+        <div className="mt-3 d-flex gap-2 align-items-center">
           <button
             className="btn btn-sm btn-outline-warning"
             onClick={() => alert('WL Alert set! We will notify you.')}
           >
             🔔 Set WL Alert
           </button>
-          {train.isAlternate && (
-            <span className="text-muted small align-self-center">
+          {train.isAlternate && train.viaStation && (
+            <span className="text-muted small">
               via {train.viaStation}
             </span>
           )}

@@ -93,33 +93,29 @@ function TrainList() {
 
     if (sortBy === 'fastest') {
       return [...filtered].sort((a, b) => {
-        const aHours = parseInt(a.duration)
-        const bHours = parseInt(b.duration)
-        return aHours - bHours
+        const parseDuration = (dur) => {
+          const match = dur.match(/(\d+)h\s*(\d+)?m?/)
+          if (!match) return 0
+          return parseInt(match[1]) * 60 + parseInt(match[2] || 0)
+        }
+        return parseDuration(a.duration) - parseDuration(b.duration)
       })
     }
 
-   if (sortBy === 'wlChance') {
-  return [...filtered].sort((a, b) => {
-    // Step 1: get confirm chance for user's selected class
-    const getClassProb = (train) => {
-      const cls = train.classes.find(c => c.type === selectedClass)
-      return cls ? cls.confirmChance : -1
+    if (sortBy === 'wlChance') {
+      return [...filtered].sort((a, b) => {
+        const getClassProb = (train) => {
+          const cls = train.classes.find(c => c.type === selectedClass)
+          return cls ? cls.confirmChance : -1
+        }
+        const aProb = getClassProb(a)
+        const bProb = getClassProb(b)
+        if (bProb !== aProb) return bProb - aProb
+        const avgProb = (train) =>
+          train.classes.reduce((sum, c) => sum + c.confirmChance, 0) / train.classes.length
+        return avgProb(b) - avgProb(a)
+      })
     }
-
-    const aProb = getClassProb(a)
-    const bProb = getClassProb(b)
-
-    // Step 2: sort descending by user's chosen class
-    if (bProb !== aProb) return bProb - aProb
-
-    // Step 3: tiebreak → avg confirmChance across all classes
-    const avgProb = (train) =>
-      train.classes.reduce((sum, c) => sum + c.confirmChance, 0) / train.classes.length
-
-    return avgProb(b) - avgProb(a)
-  })
-}
 
     return filtered
   }
@@ -176,7 +172,7 @@ function TrainList() {
                   { value: 'recommended', label: 'Recommended' },
                   { value: 'cheapest', label: '💰 Cheapest First' },
                   { value: 'fastest', label: '⚡ Fastest First' },
-                  { value: 'wlChance', label: '🎯 WL Probability' }
+                  { value: 'wlChance', label: '🎯 WL Probability', sub: 'by your class' }
                 ].map(option => (
                   <div key={option.value} className="form-check">
                     <input
@@ -188,9 +184,12 @@ function TrainList() {
                       checked={sortBy === option.value}
                       onChange={(e) => setSortBy(e.target.value)}
                     />
-                    <label className="form-check-label small" htmlFor={option.value}>
-                      {option.label}
-                    </label>
+                   <label className="form-check-label small" htmlFor={option.value}>
+  {option.label}
+  {option.sub && (
+    <span className="text-muted ms-1" style={{ fontSize: '10px' }}>({option.sub})</span>
+  )}
+</label>
                   </div>
                 ))}
               </div>
