@@ -88,7 +88,14 @@ const minutesToTime = (minutes) => {
   const m = ((minutes % (24 * 60)) + 24 * 60) % (24 * 60)
   return `${Math.floor(m / 60).toString().padStart(2, '0')}:${(m % 60).toString().padStart(2, '0')}`
 }
-
+// Check if stopA comes before stopB in a train's journey
+const isStopBefore = (train, stopA, stopB) => {
+  const allStops = [train.source, ...train.stopsAt, train.destination]
+  const indexA = allStops.findIndex(s => s.toLowerCase() === stopA.toLowerCase())
+  const indexB = allStops.findIndex(s => s.toLowerCase() === stopB.toLowerCase())
+  if (indexA === -1 || indexB === -1) return false
+  return indexA < indexB
+}
 // Main function
 const findAlternateRoutes = (allTrains, source, destination) => {
   const alternateRoutes = []
@@ -125,7 +132,12 @@ const findAlternateRoutes = (allTrains, source, destination) => {
       for (const train2 of connectingTrains) {
         const arrivalAtStop = getArrivalAtStop(train1, stop)
         const departureFromStop = getDepartureFromStop(train2, stop)
+        // Improvement 1: Prevent backward routes
+// Train1: source must come before via stop
+if (!isStopBefore(train1, source, stop)) continue
 
+// Train2: via stop must come before destination
+if (!isStopBefore(train2, stop, destination)) continue
         if (arrivalAtStop === null || departureFromStop === null) continue
 
         let gap = departureFromStop - arrivalAtStop

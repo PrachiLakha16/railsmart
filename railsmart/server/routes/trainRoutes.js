@@ -58,19 +58,22 @@ router.get('/alternate', async (req, res) => {
 
     if (alternateRoutes.length === 0) {
       return res.status(404).json({
+        success: false,
         message: 'No alternate routes found',
-        routes: []
+        alternateRoutes: []
       })
     }
 
     // Sort by cheapest price
     alternateRoutes.sort((a, b) => a.cheapestPrice - b.cheapestPrice)
 
-    res.status(200).json({
-      message: 'Alternate routes found',
-      count: alternateRoutes.length,
-      routes: alternateRoutes
-    })
+  res.status(200).json({
+  success: true,
+  source: from,
+  destination: to,
+  count: alternateRoutes.length,
+  alternateRoutes
+})
 
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message })
