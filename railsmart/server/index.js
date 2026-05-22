@@ -5,11 +5,12 @@ require('dotenv').config()
 
 const authRoutes = require('./routes/authRoutes')
 const trainRoutes = require('./routes/trainRoutes')
-
+const alternateRoutes = require('./routes/alternateRoutes')
 const app = express()
 
 app.use(cors())
 app.use(express.json())
+app.use('/api/alternate', alternateRoutes)
 
 mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log('MongoDB connected successfully!'))
