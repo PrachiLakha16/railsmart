@@ -125,29 +125,30 @@ const getArrivalAtDestination = (train2, destination) => {
 }
 
 // Main function
+// Main function
 const findAlternateRoutes = (allTrains, source, destination, selectedClass) => {
   const alternateRoutes = []
   const seen = new Set()
 
-  // Step 1 — Find direct trains and their best WL chance
+  // Edge Case 1 — Same source and destination
+  if (source.toLowerCase() === destination.toLowerCase()) {
+    return []
+  }
+
+  // Find direct trains for reference
   const directTrains = allTrains.filter(t =>
     t.source.toLowerCase() === source.toLowerCase() &&
     t.destination.toLowerCase() === destination.toLowerCase() &&
     !t.isAlternate
   )
 
-  // Get worst direct train WL chance
-  // We only suggest alternates BETTER than this
-  let directBestChance = 100
   let directMinutes = 900
+  let directBestChance = 100
 
   if (directTrains.length > 0) {
-    // Find best WL chance among direct trains
     directBestChance = Math.max(
       ...directTrains.map(t => getBestConfirmChance(t, selectedClass))
     )
-
-    // Find shortest direct duration
     const durations = directTrains.map(t => {
       const dep = timeToMinutes(t.departureTime)
       const arr = timeToMinutes(t.arrivalTime)
@@ -160,25 +161,31 @@ const findAlternateRoutes = (allTrains, source, destination, selectedClass) => {
 
   const maxAllowedTotal = getMaxAllowedTime(directMinutes)
 
-  // Step 2 — Find alternate routes
   const trainsFromSource = allTrains.filter(train =>
     train.source.toLowerCase() === source.toLowerCase() &&
     train.stopsAt && train.stopsAt.length > 0
   )
 
+  // Edge Case 2 — No trains from source at all
+  if (trainsFromSource.length === 0) {
+    return []
+  }
+
   for (const train1 of trainsFromSource) {
 
-    // Check Train 1 WL chance first
     const train1Chance = getBestConfirmChance(train1, selectedClass)
-
-    // Skip if Train 1 chance is below minimum threshold
     if (train1Chance < MIN_WL_CHANCE) continue
 
     for (const stop of train1.stopsAt) {
 
+      // Edge Case 3 — Stop is same as destination
       if (stop.toLowerCase() === destination.toLowerCase()) continue
 
+      // Edge Case 4 — Stop is same as source
+      if (stop.toLowerCase() === source.toLowerCase()) continue
+
       const connectingTrains = allTrains.filter(train => {
+        // Edge Case 5 — Same train cannot be used twice
         if (train._id.toString() === train1._id.toString()) return false
 
         const passesThruStop =
@@ -194,16 +201,11 @@ const findAlternateRoutes = (allTrains, source, destination, selectedClass) => {
 
       for (const train2 of connectingTrains) {
 
-        // Check Train 2 WL chance
         const train2Chance = getBestConfirmChance(train2, selectedClass)
-
-        // Skip if Train 2 chance is below minimum threshold
         if (train2Chance < MIN_WL_CHANCE) continue
 
-        // Combined WL score — weakest link
         const combinedChance = Math.min(train1Chance, train2Chance)
 
-        // Prevent backward routes
         if (!isStopBefore(train1, source, stop)) continue
         if (!isStopBefore(train2, stop, destination)) continue
 
@@ -212,28 +214,44 @@ const findAlternateRoutes = (allTrains, source, destination, selectedClass) => {
 
         if (arrivalAtStop === null || departureFromStop === null) continue
 
-        // Calculate layover
+        // Edge Case 6 — Handle overnight connections properly
+        // Train 2 might depart next day after Train 1 arrives
         let gap = departureFromStop - arrivalAtStop
+
+        // If gap is negative, Train 2 departs next day
         if (gap < 0) gap += 24 * 60
 
-        // Apply min/max layover constraint
+        // Apply layover constraints
         if (gap < MIN_LAYOVER || gap > MAX_LAYOVER) continue
 
-        // Calculate total journey duration
+        // Total duration calculation with overnight support
         const train1DepMinutes = timeToMinutes(train1.departureTime)
         const arrivalAtDestination = getArrivalAtDestination(train2, destination)
 
         let totalMins = arrivalAtDestination - train1DepMinutes
+
+        // Edge Case 7 — Overnight total journey
         if (totalMins < 0) totalMins += 24 * 60
+
+        // Edge Case 8 — 2 day journey
         if (totalMins < gap) totalMins += 24 * 60
+
+        // Edge Case 9 — Unrealistically short journey
+        if (totalMins < 60) continue
 
         // Apply tier-based max journey time
         if (totalMins > maxAllowedTotal) continue
 
-        // Deduplicate
+        // Edge Case 10 — Deduplicate same A-B-C combinations
         const key = `${train1.trainNumber}-${stop}-${train2.trainNumber}`
         if (seen.has(key)) continue
         seen.add(key)
+
+        // Edge Case 11 — Deduplicate same via station with different trains
+        // but same prices (essentially same journey)
+        const priceKey = `${source}-${stop}-${destination}-${Math.min(...train1.classes.map(c => c.price))}-${Math.min(...train2.classes.map(c => c.price))}`
+        if (seen.has(priceKey)) continue
+        seen.add(priceKey)
 
         alternateRoutes.push({
           type: 'ALTERNATE',
@@ -263,16 +281,15 @@ const findAlternateRoutes = (allTrains, source, destination, selectedClass) => {
           cheapestPrice:
             Math.min(...train1.classes.map(c => c.price)) +
             Math.min(...train2.classes.map(c => c.price)),
-          totalDuration: `${Math.floor(totalMins / 60)}h ${totalMins % 60}m`
+          totalDuration: `${Math.floor(totalMins / 60)}h ${totalMins % 60}m`,
+          isOvernightConnection: gap > (24 * 60 - MAX_LAYOVER)
         })
       }
     }
   }
 
-  // Sort by combined WL chance descending (highest first)
-  // This is the KEY change — best confirmation routes come first
+  // Sort by combined WL chance descending
   alternateRoutes.sort((a, b) => b.combinedWLChance - a.combinedWLChance)
-
   return alternateRoutes
 }
 

@@ -286,10 +286,26 @@ function TrainList() {
                 <p className="mt-2 text-muted">Searching trains...</p>
               </div>
             ) : error ? (
-              <div className="alert alert-warning mt-3">{error}</div>
+              <div className="card p-4 text-center border-0 mt-3"
+                style={{ backgroundColor: '#fff5f5' }}>
+                <div style={{ fontSize: '32px' }}>🚂</div>
+                <div className="fw-semibold mt-2">No trains found</div>
+                <div className="text-muted small mt-1">{error}</div>
+                <div className="text-muted small mt-1">
+                  Check spelling of station names or try a different route
+                </div>
+              </div>
             ) : getSortedTrains().length === 0 ? (
-              <div className="text-center text-muted mt-5">
-                No trains found for this route.
+              <div className="card p-4 text-center border-0 mt-3"
+                style={{ backgroundColor: '#fff5f5' }}>
+                <div style={{ fontSize: '32px' }}>🚂</div>
+                <div className="fw-semibold mt-2">No trains found</div>
+                <div className="text-muted small mt-1">
+                  No trains match your current filters
+                </div>
+                <div className="text-muted small mt-1">
+                  Try changing departure time filter or class
+                </div>
               </div>
             ) : (
               getSortedTrains().map(train => (
@@ -304,15 +320,28 @@ function TrainList() {
                 {loadingAlternate ? (
                   <div className="text-center mt-3">
                     <div className="spinner-border text-warning" role="status"></div>
-                    <p className="mt-2 text-muted small">Finding alternate routes...</p>
+                    <p className="mt-2 text-muted small">
+                      Finding best alternate routes...
+                    </p>
                   </div>
                 ) : alternateRoutes.length > 0 ? (
                   alternateRoutes.map((route, index) => (
                     <AlternateRouteCard key={index} route={route} />
                   ))
                 ) : (
-                  <div className="alert alert-info">
-                    No alternate routes found for this journey.
+                  <div className="card p-4 text-center border-0"
+                    style={{ backgroundColor: '#fef9ec' }}>
+                    <div style={{ fontSize: '32px' }}>🔍</div>
+                    <div className="fw-semibold mt-2">
+                      No alternate routes found
+                    </div>
+                    <div className="text-muted small mt-1">
+                      All connecting routes have low confirmation chances
+                      or don't meet timing constraints
+                    </div>
+                    <div className="text-muted small mt-1">
+                      Try a different date or remove class filter
+                    </div>
                   </div>
                 )}
               </div>
@@ -325,4 +354,4 @@ function TrainList() {
   )
 }
 
-export default TrainList  
+export default TrainList
