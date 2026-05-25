@@ -1,8 +1,12 @@
 const express = require('express')
 const router = express.Router()
 const Train = require('../models/Train')
-const { findAlternateRoutes } = require('../utils/routeEngine')
-
+const {
+  findAlternateRoutes,
+  rankAlternateRoutes,
+  parseDurationToMinutes,
+  getRouteWLScore
+} = require('../utils/routeEngine')
 // Search direct trains
 router.get('/search', async (req, res) => {
   try {
@@ -38,25 +42,27 @@ router.get('/search', async (req, res) => {
   }
 })
 
-// Alternate route API — A → B → C
+// Alternate route API — with ranking
 router.get('/alternate', async (req, res) => {
   try {
-    const { from, to } = req.query
+    const { from, to, sortBy } = req.query
 
     if (!from || !to) {
-      return res.status(400).json({ message: 'Please provide source and destination' })
+      return res.status(400).json({
+        message: 'Please provide source and destination'
+      })
     }
+
     if (from.toLowerCase() === to.toLowerCase()) {
-  return res.status(400).json({ message: 'Source and destination cannot be the same' })
-}
+      return res.status(400).json({
+        message: 'Source and destination cannot be the same'
+      })
+    }
 
-    // Get all trains from database
     const allTrains = await Train.find({})
+    const routes = findAlternateRoutes(allTrains, from, to)
 
-    // Run route engine
-    const alternateRoutes = findAlternateRoutes(allTrains, from, to)
-
-    if (alternateRoutes.length === 0) {
+    if (routes.length === 0) {
       return res.status(404).json({
         success: false,
         message: 'No alternate routes found',
@@ -64,19 +70,43 @@ router.get('/alternate', async (req, res) => {
       })
     }
 
-    // Sort by cheapest price
-    alternateRoutes.sort((a, b) => a.cheapestPrice - b.cheapestPrice)
+    // Rank using smart engine
+    let rankedRoutes = rankAlternateRoutes(routes)
 
-  res.status(200).json({
-  success: true,
-  source: from,
-  destination: to,
-  count: alternateRoutes.length,
-  alternateRoutes
-})
+    // Apply user sort
+    if (sortBy === 'price') {
+      rankedRoutes = rankedRoutes.sort((a, b) =>
+        a.cheapestPrice - b.cheapestPrice
+      )
+    } else if (sortBy === 'duration') {
+      rankedRoutes = rankedRoutes.sort((a, b) =>
+        parseDurationToMinutes(a.totalDuration) -
+        parseDurationToMinutes(b.totalDuration)
+      )
+    } else if (sortBy === 'wl') {
+      rankedRoutes = rankedRoutes.sort((a, b) =>
+        getRouteWLScore(b) - getRouteWLScore(a)
+      )
+    } else if (sortBy === 'layover') {
+      rankedRoutes = rankedRoutes.sort((a, b) =>
+        (a.layoverMinutes || 0) - (b.layoverMinutes || 0)
+      )
+    }
+
+    res.status(200).json({
+      success: true,
+      source: from,
+      destination: to,
+      sortBy: sortBy || 'recommended',
+      count: rankedRoutes.length,
+      alternateRoutes: rankedRoutes
+    })
 
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message })
+    res.status(500).json({
+      message: 'Server error',
+      error: error.message
+    })
   }
 })
 

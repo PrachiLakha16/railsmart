@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import Navbar from '../components/Navbar'
 import TrainCard from '../components/TrainCard'
+import AlternateRouteCard from '../components/AlternateRouteCard'
 import axios from 'axios'
 
 function TrainList() {
@@ -22,8 +23,10 @@ function TrainList() {
   const [sortBy, setSortBy] = useState('recommended')
   const [departureFilter, setDepartureFilter] = useState([])
   const [showAlternate, setShowAlternate] = useState(showCheapest)
+  const [alternateRoutes, setAlternateRoutes] = useState([])
+  const [loadingAlternate, setLoadingAlternate] = useState(false)
 
-  // Fetch trains from backend
+  // Fetch direct trains from backend
   useEffect(() => {
     const fetchTrains = async () => {
       try {
@@ -41,6 +44,24 @@ function TrainList() {
     }
     fetchTrains()
   }, [from, to, selectedClass])
+
+  // Fetch alternate routes
+  useEffect(() => {
+    const fetchAlternateRoutes = async () => {
+      if (!showAlternate) return
+      try {
+        setLoadingAlternate(true)
+        const res = await axios.get(
+          `http://localhost:5000/api/alternate?source=${from}&destination=${to}&sortBy=${sortBy}`
+        )
+        setAlternateRoutes(res.data.alternateRoutes || [])
+      } catch (err) {
+        setAlternateRoutes([])
+      }
+      setLoadingAlternate(false)
+    }
+    fetchAlternateRoutes()
+  }, [showAlternate, from, to, sortBy])
 
   // Generate 10 days from original search date
   const generateDates = () => {
@@ -68,7 +89,7 @@ function TrainList() {
 
   // Sort and filter trains
   const getSortedTrains = () => {
-    let filtered = showAlternate ? trains : trains.filter(t => !t.isAlternate)
+    let filtered = trains.filter(t => !t.isAlternate)
 
     if (departureFilter.length > 0) {
       filtered = filtered.filter(train => {
@@ -105,7 +126,7 @@ function TrainList() {
     if (sortBy === 'wlChance') {
       return [...filtered].sort((a, b) => {
         const getClassProb = (train) => {
-          const cls = train.classes.find(c => c.type === selectedClass)
+          const cls = train.classes.find(c => c.className === selectedClass)
           return cls ? cls.confirmChance : -1
         }
         const aProb = getClassProb(a)
@@ -184,12 +205,14 @@ function TrainList() {
                       checked={sortBy === option.value}
                       onChange={(e) => setSortBy(e.target.value)}
                     />
-                   <label className="form-check-label small" htmlFor={option.value}>
-  {option.label}
-  {option.sub && (
-    <span className="text-muted ms-1" style={{ fontSize: '10px' }}>({option.sub})</span>
-  )}
-</label>
+                    <label className="form-check-label small" htmlFor={option.value}>
+                      {option.label}
+                      {option.sub && (
+                        <span className="text-muted ms-1" style={{ fontSize: '10px' }}>
+                          ({option.sub})
+                        </span>
+                      )}
+                    </label>
                   </div>
                 ))}
               </div>
@@ -253,8 +276,10 @@ function TrainList() {
             </div>
           </div>
 
-          {/* Train Cards */}
+          {/* Train Cards + Alternate Routes */}
           <div className="col-md-9">
+
+            {/* Direct Trains */}
             {loading ? (
               <div className="text-center mt-5">
                 <div className="spinner-border text-danger" role="status"></div>
@@ -271,12 +296,33 @@ function TrainList() {
                 <TrainCard key={train._id} train={train} />
               ))
             )}
-          </div>
 
+            {/* Alternate Routes Section */}
+            {showAlternate && (
+              <div className="mt-4">
+                <h6 className="fw-bold mb-3">🔀 Alternate Routes</h6>
+                {loadingAlternate ? (
+                  <div className="text-center mt-3">
+                    <div className="spinner-border text-warning" role="status"></div>
+                    <p className="mt-2 text-muted small">Finding alternate routes...</p>
+                  </div>
+                ) : alternateRoutes.length > 0 ? (
+                  alternateRoutes.map((route, index) => (
+                    <AlternateRouteCard key={index} route={route} />
+                  ))
+                ) : (
+                  <div className="alert alert-info">
+                    No alternate routes found for this journey.
+                  </div>
+                )}
+              </div>
+            )}
+
+          </div>
         </div>
       </div>
     </div>
   )
 }
 
-export default TrainList
+export default TrainList  

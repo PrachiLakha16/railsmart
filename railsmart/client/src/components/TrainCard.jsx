@@ -13,19 +13,22 @@ function TrainCard({ train }) {
   }
 
   return (
-    <div className="card mb-3 shadow-sm" style={{ borderRadius: '12px', border: '1px solid #e5e7eb' }}>
+    <div className="card mb-3 shadow-sm" style={{
+      borderRadius: '12px',
+      border: '1px solid #e5e7eb',
+      borderLeft: '4px solid #16a34a'  // green stripe
+    }}>
       <div className="card-body p-3">
 
         {/* Train name and number */}
         <div className="d-flex justify-content-between align-items-center mb-2">
           <div>
-            <span className="fw-bold" style={{ fontSize: '15px' }}>{train.trainNumber}</span>
-            <span className="text-muted ms-2" style={{ fontSize: '14px' }}>{train.trainName}</span>
-            {train.isAlternate && (
-              <span className="badge ms-2" style={{ backgroundColor: '#ede9fe', color: '#6d28d9', fontSize: '11px' }}>
-                Alternate Route
-              </span>
-            )}
+            <span className="fw-bold" style={{ fontSize: '15px' }}>
+              {train.trainNumber}
+            </span>
+            <span className="text-muted ms-2" style={{ fontSize: '14px' }}>
+              {train.trainName}
+            </span>
           </div>
           <div className="text-muted small">⭐ {train.rating || 'N/A'}</div>
         </div>
@@ -33,19 +36,29 @@ function TrainCard({ train }) {
         {/* Timing row */}
         <div className="d-flex align-items-center gap-3 mb-3">
           <div className="text-center">
-            <div className="fw-bold" style={{ fontSize: '20px' }}>{train.departureTime}</div>
-            <div className="text-muted" style={{ fontSize: '11px' }}>{train.source}</div>
+            <div className="fw-bold" style={{ fontSize: '20px' }}>
+              {train.departureTime}
+            </div>
+            <div className="text-muted" style={{ fontSize: '11px' }}>
+              {train.source}
+            </div>
           </div>
           <div className="flex-grow-1 text-center">
-            <div className="text-muted" style={{ fontSize: '11px' }}>{train.duration}</div>
+            <div className="text-muted" style={{ fontSize: '11px' }}>
+              {train.duration}
+            </div>
             <div style={{ borderTop: '1.5px dashed #d1d5db', margin: '4px 0' }}></div>
             <div className="text-muted" style={{ fontSize: '10px' }}>
-              {train.daysOfWeek?.join(', ') || 'Daily'}
+              {train.runningDays?.join(', ') || 'Daily'}
             </div>
           </div>
           <div className="text-center">
-            <div className="fw-bold" style={{ fontSize: '20px' }}>{train.arrivalTime}</div>
-            <div className="text-muted" style={{ fontSize: '11px' }}>{train.destination}</div>
+            <div className="fw-bold" style={{ fontSize: '20px' }}>
+              {train.arrivalTime}
+            </div>
+            <div className="text-muted" style={{ fontSize: '11px' }}>
+              {train.destination}
+            </div>
           </div>
         </div>
 
@@ -62,7 +75,9 @@ function TrainCard({ train }) {
                 backgroundColor: '#fafafa'
               }}
             >
-              <div className="fw-semibold" style={{ fontSize: '12px' }}>{cls.className}</div>
+              <div className="fw-semibold" style={{ fontSize: '12px' }}>
+                {cls.className}
+              </div>
               <div style={{ fontSize: '13px', color: '#111' }}>₹{cls.price}</div>
               {cls.waitlistCount > 0 ? (
                 <>
@@ -90,19 +105,14 @@ function TrainCard({ train }) {
           ))}
         </div>
 
-        {/* WL Alert + via station */}
-        <div className="mt-3 d-flex gap-2 align-items-center">
+        {/* WL Alert button */}
+        <div className="mt-3">
           <button
             className="btn btn-sm btn-outline-warning"
             onClick={() => alert('WL Alert set! We will notify you.')}
           >
             🔔 Set WL Alert
           </button>
-          {train.isAlternate && train.viaStation && (
-            <span className="text-muted small">
-              via {train.viaStation}
-            </span>
-          )}
         </div>
 
       </div>

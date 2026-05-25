@@ -1,54 +1,95 @@
 const express = require('express')
 const router = express.Router()
 const Train = require('../models/Train')
-const { findAlternateRoutes } = require('../utils/routeEngine')
+const {
+  findAlternateRoutes,
+  rankAlternateRoutes,
+  parseDurationToMinutes,
+  getRouteWLScore
+} = require('../utils/routeEngine')
 
-// GET /api/alternate?source=Delhi&destination=Mumbai
+// GET /api/alternate?source=X&destination=Y&sortBy=price
 router.get('/', async (req, res) => {
   try {
-    const { source, destination } = req.query
+    const { source, destination, sortBy, selectedClass } = req.query
 
+    // Validation
     if (!source || !destination) {
       return res.status(400).json({
+        success: false,
         message: 'source and destination query params are required'
       })
     }
 
     if (source.toLowerCase() === destination.toLowerCase()) {
       return res.status(400).json({
+        success: false,
         message: 'Source and destination cannot be the same'
       })
     }
 
-    // Fetch all trains from DB
+    // Fetch all trains
     const allTrains = await Train.find({})
 
     if (!allTrains || allTrains.length === 0) {
-      return res.status(404).json({ message: 'No trains found in database' })
+      return res.status(404).json({
+        success: false,
+        message: 'No trains found in database'
+      })
     }
 
-    // Run the alternate route engine
-    const alternateRoutes = findAlternateRoutes(allTrains, source, destination)
+    // Find alternate routes
+    const routes = findAlternateRoutes(allTrains, source, destination, selectedClass)
 
-    if (alternateRoutes.length === 0) {
+    if (routes.length === 0) {
       return res.status(404).json({
-        message: `No alternate routes found from ${source} to ${destination}`,
+        success: false,
+        source,
+        destination,
+        totalAlternates: 0,
         alternateRoutes: []
       })
     }
 
-    // Sort by cheapest combined price
-    alternateRoutes.sort((a, b) => a.cheapestPrice - b.cheapestPrice)
+    // Rank routes using smart ranking engine
+    let rankedRoutes = rankAlternateRoutes(routes)
+
+    // Apply user-requested sort on top of ranking
+    if (sortBy === 'price') {
+      rankedRoutes = rankedRoutes.sort((a, b) =>
+        a.cheapestPrice - b.cheapestPrice
+      )
+    } else if (sortBy === 'duration') {
+      rankedRoutes = rankedRoutes.sort((a, b) =>
+        parseDurationToMinutes(a.totalDuration) -
+        parseDurationToMinutes(b.totalDuration)
+      )
+    } else if (sortBy === 'wl') {
+      rankedRoutes = rankedRoutes.sort((a, b) =>
+        getRouteWLScore(b) - getRouteWLScore(a)
+      )
+    } else if (sortBy === 'layover') {
+      rankedRoutes = rankedRoutes.sort((a, b) =>
+        (a.layoverMinutes || 0) - (b.layoverMinutes || 0)
+      )
+    }
+    // default: already ranked by combined score
 
     res.status(200).json({
+      success: true,
       source,
       destination,
-      totalAlternates: alternateRoutes.length,
-      alternateRoutes
+      sortBy: sortBy || 'recommended',
+      totalAlternates: rankedRoutes.length,
+      alternateRoutes: rankedRoutes
     })
 
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message })
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message
+    })
   }
 })
 
