@@ -8,6 +8,8 @@ const trainRoutes = require('./routes/trainRoutes')
 const alternateRoutes = require('./routes/alternateRoutes')
 const passengerRoutes = require('./routes/passengerRoutes')
 const bookingRoutes = require('./routes/bookingRoutes')
+const wlAlertRoutes = require('./routes/wlAlertRoutes')
+const { checkAllWLAlerts } = require('./utils/wlChecker')
 
 const app = express()
 
@@ -15,7 +17,14 @@ app.use(cors())
 app.use(express.json())
 
 mongoose.connect(process.env.MONGO_URI)
-  .then(() => console.log('MongoDB connected successfully!'))
+  .then(() => {
+    console.log('MongoDB connected successfully!')
+
+    // Start WL checker after DB connects
+    // Runs every 5 minutes
+    setInterval(checkAllWLAlerts, 5 * 60 * 1000)
+    console.log('⏰ WL Checker started — runs every 5 minutes')
+  })
   .catch((err) => console.log('MongoDB connection error:', err.message))
 
 app.use('/api/auth', authRoutes)
@@ -23,6 +32,7 @@ app.use('/api/trains', trainRoutes)
 app.use('/api/alternate', alternateRoutes)
 app.use('/api/passengers', passengerRoutes)
 app.use('/api/booking', bookingRoutes)
+app.use('/api/wl-alerts', wlAlertRoutes)
 
 app.get('/', (req, res) => {
   res.send('RailSmart backend running!')

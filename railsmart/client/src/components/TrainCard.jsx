@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom'
 
 function TrainCard({ train }) {
   const navigate = useNavigate()
+  const token = localStorage.getItem('token')
 
   const getChanceColor = (chance) => {
     if (chance >= 80) return '#1a7f37'
@@ -17,6 +18,43 @@ function TrainCard({ train }) {
 
   const handleBooking = (cls) => {
     navigate(`/booking?trainId=${train._id}&class=${cls.className}&price=${cls.price}&trainName=${encodeURIComponent(train.trainName)}&trainNumber=${train.trainNumber}&from=${train.source}&to=${train.destination}&departure=${train.departureTime}&arrival=${train.arrivalTime}`)
+  }
+
+  const handleWLAlert = async (cls) => {
+    if (cls.waitlistCount === 0) {
+      alert('This class has available seats — no WL alert needed!')
+      return
+    }
+
+    try {
+      const res = await fetch('http://localhost:5000/api/wl-alerts', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          trainId: train._id,
+          trainNumber: train.trainNumber,
+          trainName: train.trainName,
+          from: train.source,
+          to: train.destination,
+          journeyDate: new Date().toISOString(),
+          selectedClass: cls.className,
+          currentWLNumber: cls.waitlistCount,
+          currentConfirmChance: cls.confirmChance,
+          triggerWhenChanceAbove: 70
+        })
+      })
+      const data = await res.json()
+      if (data.success) {
+        alert(`✅ ${data.message}`)
+      } else {
+        alert(data.message || 'Could not set alert')
+      }
+    } catch (err) {
+      alert('Failed to set WL alert. Please try again.')
+    }
   }
 
   return (
@@ -131,14 +169,21 @@ function TrainCard({ train }) {
           ))}
         </div>
 
-        {/* WL Alert button */}
-        <div className="mt-3">
-          <button
-            className="btn btn-sm btn-outline-warning"
-            onClick={() => alert('WL Alert set! We will notify you.')}
-          >
-            🔔 Set WL Alert
-          </button>
+        {/* WL Alert buttons per class */}
+        <div className="mt-3 d-flex gap-2 flex-wrap">
+          {train.classes && train.classes
+            .filter(cls => cls.waitlistCount > 0)
+            .map((cls, index) => (
+              <button
+                key={index}
+                className="btn btn-sm btn-outline-warning"
+                style={{ fontSize: '11px' }}
+                onClick={() => handleWLAlert(cls)}
+              >
+                🔔 WL Alert ({cls.className})
+              </button>
+            ))
+          }
         </div>
 
       </div>
