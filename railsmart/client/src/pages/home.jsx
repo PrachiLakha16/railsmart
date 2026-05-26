@@ -14,28 +14,83 @@ function Home() {
 
   const [findCheapest, setFindCheapest] = useState(false)
   const [error, setError] = useState('')
+  const [searching, setSearching] = useState(false)
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value })
+    // Clear error on input change
+    if (error) setError('')
   }
 
   const handleSearch = () => {
-    // Basic validation
-    if (!formData.from || !formData.to || !formData.date) {
-      setError('Please fill all fields')
+    // Trim inputs
+    const from = formData.from.trim()
+    const to = formData.to.trim()
+    const date = formData.date
+
+    // Validation
+    if (!from || !to || !date) {
+      setError('Please fill all fields before searching')
       return
     }
 
-    if (formData.from.toLowerCase() === formData.to.toLowerCase()) {
-      setError('Source and destination cannot be same')
+    if (from.toLowerCase() === to.toLowerCase()) {
+      setError('Source and destination cannot be the same')
+      return
+    }
+
+    if (from.length < 2 || to.length < 2) {
+      setError('Please enter valid station names')
       return
     }
 
     setError('')
+    setSearching(true)
 
-    // Navigate to train list with search params
-    navigate(`/trains?from=${formData.from}&to=${formData.to}&date=${formData.date}&class=${formData.class}&cheapest=${findCheapest}`)
+    // Small delay for button feedback
+    setTimeout(() => {
+      navigate(
+        `/trains?from=${from}&to=${to}&date=${date}&class=${formData.class}&cheapest=${findCheapest}`
+      )
+      setSearching(false)
+    }, 300)
   }
+
+  // Allow search on Enter key
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter') handleSearch()
+  }
+
+  const features = [
+    {
+      icon: '🔀',
+      title: 'Alternate Routes',
+      desc: 'Find routes when direct trains are full or waitlisted',
+      color: '#ede9fe',
+      iconColor: '#7c3aed'
+    },
+    {
+      icon: '💰',
+      title: 'Cheapest Route',
+      desc: 'Save money with smart multi-train route suggestions',
+      color: '#dcfce7',
+      iconColor: '#16a34a'
+    },
+    {
+      icon: '🔔',
+      title: 'Smart WL Alerts',
+      desc: 'Get notified when your waitlist confirmation improves',
+      color: '#fef9c3',
+      iconColor: '#ca8a04'
+    },
+    {
+      icon: '⚡',
+      title: 'Tatkal Autofill',
+      desc: 'Book Tatkal tickets in seconds with saved passengers',
+      color: '#fee2e2',
+      iconColor: '#dc2626'
+    }
+  ]
 
   return (
     <div style={{ backgroundColor: '#f8f9fa', minHeight: '100vh' }}>
@@ -44,17 +99,18 @@ function Home() {
       <div className="container mt-4">
 
         {/* Search Card */}
-        <div className="card shadow-sm p-4">
+        <div className="card shadow-sm p-4" style={{ borderRadius: '12px' }}>
 
-          {/* Title */}
-          <h6 className="text-muted mb-3">Search Trains</h6>
+          <h6 className="fw-semibold mb-3" style={{ color: '#374151' }}>
+            🚂 Search Trains
+          </h6>
 
           {/* Search Form */}
           <div className="row g-2 align-items-end">
 
             {/* From */}
             <div className="col-md-3">
-              <label className="form-label small fw-semibold">From</label>
+              <label className="form-label small fw-semibold text-muted">From</label>
               <input
                 type="text"
                 name="from"
@@ -62,12 +118,33 @@ function Home() {
                 placeholder="e.g. Delhi"
                 value={formData.from}
                 onChange={handleChange}
+                onKeyDown={handleKeyDown}
+                style={{ borderRadius: '8px' }}
               />
+            </div>
+
+            {/* Swap icon */}
+            <div className="col-md-auto d-none d-md-flex align-items-end pb-1">
+              <span
+                style={{
+                  cursor: 'pointer',
+                  fontSize: '18px',
+                  color: '#9ca3af'
+                }}
+                onClick={() => setFormData(prev => ({
+                  ...prev,
+                  from: prev.to,
+                  to: prev.from
+                }))}
+                title="Swap source and destination"
+              >
+                ⇄
+              </span>
             </div>
 
             {/* To */}
             <div className="col-md-3">
-              <label className="form-label small fw-semibold">To</label>
+              <label className="form-label small fw-semibold text-muted">To</label>
               <input
                 type="text"
                 name="to"
@@ -75,12 +152,14 @@ function Home() {
                 placeholder="e.g. Mumbai"
                 value={formData.to}
                 onChange={handleChange}
+                onKeyDown={handleKeyDown}
+                style={{ borderRadius: '8px' }}
               />
             </div>
 
             {/* Date */}
             <div className="col-md-2">
-              <label className="form-label small fw-semibold">Date</label>
+              <label className="form-label small fw-semibold text-muted">Date</label>
               <input
                 type="date"
                 name="date"
@@ -88,17 +167,19 @@ function Home() {
                 value={formData.date}
                 onChange={handleChange}
                 min={new Date().toISOString().split('T')[0]}
+                style={{ borderRadius: '8px' }}
               />
             </div>
 
             {/* Class */}
             <div className="col-md-2">
-              <label className="form-label small fw-semibold">Class</label>
+              <label className="form-label small fw-semibold text-muted">Class</label>
               <select
                 name="class"
                 className="form-select"
                 value={formData.class}
                 onChange={handleChange}
+                style={{ borderRadius: '8px' }}
               >
                 <option value="ALL">All Classes</option>
                 <option value="SL">Sleeper (SL)</option>
@@ -112,10 +193,24 @@ function Home() {
             <div className="col-md-2">
               <button
                 className="btn w-100"
-                style={{ backgroundColor: '#e63946', color: 'white' }}
+                style={{
+                  backgroundColor: searching ? '#c1121f' : '#e63946',
+                  color: 'white',
+                  borderRadius: '8px',
+                  transition: 'background-color 0.2s'
+                }}
                 onClick={handleSearch}
+                disabled={searching}
               >
-                Search →
+                {searching ? (
+                  <>
+                    <span className="spinner-border spinner-border-sm me-1"
+                      role="status"></span>
+                    Searching...
+                  </>
+                ) : (
+                  'Search →'
+                )}
               </button>
             </div>
 
@@ -123,10 +218,13 @@ function Home() {
 
           {/* Error */}
           {error && (
-            <div className="alert alert-danger mt-3 py-2">{error}</div>
+            <div className="alert alert-danger mt-3 py-2 mb-0"
+              style={{ borderRadius: '8px', fontSize: '13px' }}>
+              ⚠️ {error}
+            </div>
           )}
 
-          {/* Unique Feature Toggle */}
+          {/* Cheapest Alternate Routes Toggle */}
           <div className="mt-3 pt-3 border-top d-flex align-items-center gap-2">
             <input
               type="checkbox"
@@ -134,47 +232,66 @@ function Home() {
               className="form-check-input"
               checked={findCheapest}
               onChange={(e) => setFindCheapest(e.target.checked)}
+              style={{ cursor: 'pointer' }}
             />
-            <label htmlFor="cheapest" className="form-check-label small">
-              🔍 Find Cheapest Alternate Routes
-              <span className="badge ms-2" style={{ backgroundColor: '#e63946' }}>
-                RailSmart Feature
+            <label
+              htmlFor="cheapest"
+              className="form-check-label small"
+              style={{ cursor: 'pointer' }}
+            >
+              🔍 Also find cheapest alternate routes
+              <span
+                className="badge ms-2"
+                style={{ backgroundColor: '#e63946', fontSize: '10px' }}
+              >
+                RailSmart
               </span>
             </label>
           </div>
 
         </div>
 
-        {/* Why RailSmart section */}
+        {/* Feature Cards */}
         <div className="row mt-4 g-3">
-          <div className="col-md-3">
-            <div className="card p-3 text-center border-0 shadow-sm">
-              <div className="fs-4">🔀</div>
-              <div className="fw-semibold mt-2">Alternate Routes</div>
-              <div className="text-muted small">Find routes when direct trains are full</div>
+          {features.map((feature, index) => (
+            <div key={index} className="col-md-3">
+              <div
+                className="card p-3 text-center border-0 shadow-sm h-100"
+                style={{
+                  borderRadius: '12px',
+                  transition: 'transform 0.2s, box-shadow 0.2s',
+                  cursor: 'default'
+                }}
+                onMouseEnter={e => {
+                  e.currentTarget.style.transform = 'translateY(-3px)'
+                  e.currentTarget.style.boxShadow = '0 6px 20px rgba(0,0,0,0.1)'
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.transform = 'translateY(0)'
+                  e.currentTarget.style.boxShadow = ''
+                }}
+              >
+                <div
+                  className="mx-auto mb-2 d-flex align-items-center justify-content-center"
+                  style={{
+                    width: '48px',
+                    height: '48px',
+                    borderRadius: '12px',
+                    backgroundColor: feature.color,
+                    fontSize: '22px'
+                  }}
+                >
+                  {feature.icon}
+                </div>
+                <div className="fw-semibold" style={{ fontSize: '14px' }}>
+                  {feature.title}
+                </div>
+                <div className="text-muted mt-1" style={{ fontSize: '12px' }}>
+                  {feature.desc}
+                </div>
+              </div>
             </div>
-          </div>
-          <div className="col-md-3">
-            <div className="card p-3 text-center border-0 shadow-sm">
-              <div className="fs-4">💰</div>
-              <div className="fw-semibold mt-2">Cheapest Route</div>
-              <div className="text-muted small">Save money with smart route suggestions</div>
-            </div>
-          </div>
-          <div className="col-md-3">
-            <div className="card p-3 text-center border-0 shadow-sm">
-              <div className="fs-4">🔔</div>
-              <div className="fw-semibold mt-2">Smart WL Alerts</div>
-              <div className="text-muted small">Get notified when WL confirmation improves</div>
-            </div>
-          </div>
-          <div className="col-md-3">
-            <div className="card p-3 text-center border-0 shadow-sm">
-              <div className="fs-4">⚡</div>
-              <div className="fw-semibold mt-2">Tatkal Autofill</div>
-              <div className="text-muted small">Book Tatkal tickets in seconds</div>
-            </div>
-          </div>
+          ))}
         </div>
 
       </div>
