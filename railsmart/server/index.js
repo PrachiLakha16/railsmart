@@ -6,21 +6,21 @@ require('dotenv').config()
 const authRoutes = require('./routes/authRoutes')
 const trainRoutes = require('./routes/trainRoutes')
 const alternateRoutes = require('./routes/alternateRoutes')
+const passengerRoutes = require('./routes/passengerRoutes')
 
 const app = express()
 
 app.use(cors())
 app.use(express.json())
 
-// Connect to MongoDB first
 mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log('MongoDB connected successfully!'))
   .catch((err) => console.log('MongoDB connection error:', err.message))
 
-// Register all routes
 app.use('/api/auth', authRoutes)
 app.use('/api/trains', trainRoutes)
 app.use('/api/alternate', alternateRoutes)
+app.use('/api/passengers', passengerRoutes)
 
 app.get('/', (req, res) => {
   res.send('RailSmart backend running!')

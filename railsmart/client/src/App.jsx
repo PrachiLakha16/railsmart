@@ -3,6 +3,7 @@ import Login from './pages/Login'
 import Signup from './pages/Signup'
 import Home from './pages/Home'
 import TrainList from './pages/TrainList'
+import Dashboard from './pages/Dashboard'
 
 const ProtectedRoute = ({ children }) => {
   const token = localStorage.getItem('token')
@@ -26,6 +27,11 @@ function App() {
         <Route path="/trains" element={
           <ProtectedRoute>
             <TrainList />
+          </ProtectedRoute>
+        } />
+        <Route path="/dashboard" element={
+          <ProtectedRoute>
+            <Dashboard />
           </ProtectedRoute>
         } />
       </Routes>
