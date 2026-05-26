@@ -25,7 +25,13 @@ const userSchema = new mongoose.Schema({
   name: { type: String, required: true },
   email: { type: String, required: true, unique: true },
   password: { type: String, required: true },
-  savedPassengers: [passengerSchema]
+  savedPassengers: [passengerSchema],
+  // Payment preference for Tatkal autofill
+  paymentPreference: {
+    type: String,
+    enum: ['UPI', 'Card', 'Net Banking', 'Wallet'],
+    default: 'UPI'
+  }
 }, { timestamps: true })
 
 module.exports = mongoose.model('User', userSchema)

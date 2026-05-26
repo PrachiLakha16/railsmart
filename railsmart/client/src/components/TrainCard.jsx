@@ -1,4 +1,7 @@
+import { useNavigate } from 'react-router-dom'
+
 function TrainCard({ train }) {
+  const navigate = useNavigate()
 
   const getChanceColor = (chance) => {
     if (chance >= 80) return '#1a7f37'
@@ -12,11 +15,15 @@ function TrainCard({ train }) {
     return '#fee2e2'
   }
 
+  const handleBooking = (cls) => {
+    navigate(`/booking?trainId=${train._id}&class=${cls.className}&price=${cls.price}&trainName=${encodeURIComponent(train.trainName)}&trainNumber=${train.trainNumber}&from=${train.source}&to=${train.destination}&departure=${train.departureTime}&arrival=${train.arrivalTime}`)
+  }
+
   return (
     <div className="card mb-3 shadow-sm" style={{
       borderRadius: '12px',
       border: '1px solid #e5e7eb',
-      borderLeft: '4px solid #16a34a'  // green stripe
+      borderLeft: '4px solid #16a34a'
     }}>
       <div className="card-body p-3">
 
@@ -68,11 +75,22 @@ function TrainCard({ train }) {
             <div
               key={index}
               className="text-center p-2"
+              onClick={() => handleBooking(cls)}
               style={{
                 border: '1px solid #e5e7eb',
                 borderRadius: '8px',
                 minWidth: '85px',
-                backgroundColor: '#fafafa'
+                backgroundColor: '#fafafa',
+                cursor: 'pointer',
+                transition: 'all 0.2s'
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.backgroundColor = '#fff0f0'
+                e.currentTarget.style.borderColor = '#e63946'
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.backgroundColor = '#fafafa'
+                e.currentTarget.style.borderColor = '#e5e7eb'
               }}
             >
               <div className="fw-semibold" style={{ fontSize: '12px' }}>
@@ -101,6 +119,14 @@ function TrainCard({ train }) {
                   Available
                 </div>
               )}
+              <div style={{
+                fontSize: '10px',
+                color: '#e63946',
+                marginTop: '4px',
+                fontWeight: '600'
+              }}>
+                Book →
+              </div>
             </div>
           ))}
         </div>
