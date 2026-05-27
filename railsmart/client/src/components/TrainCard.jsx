@@ -17,8 +17,8 @@ function TrainCard({ train }) {
   }
 
   const handleBooking = (cls) => {
-    navigate(`/booking?trainId=${train._id}&class=${cls.className}&price=${cls.price}&trainName=${encodeURIComponent(train.trainName)}&trainNumber=${train.trainNumber}&from=${train.source}&to=${train.destination}&departure=${train.departureTime}&arrival=${train.arrivalTime}`)
-  }
+  navigate(`/booking?trainId=${train._id}&class=${cls.className}&price=${cls.price}&trainName=${encodeURIComponent(train.trainName)}&trainNumber=${train.trainNumber}&from=${train.source}&to=${train.destination}&departure=${train.departureTime}&arrival=${train.arrivalTime}&waitlistCount=${cls.waitlistCount}&confirmChance=${cls.confirmChance}`)
+}
 
   const handleWLAlert = async (cls) => {
     if (cls.waitlistCount === 0) {

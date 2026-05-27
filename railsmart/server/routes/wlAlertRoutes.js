@@ -68,6 +68,12 @@ router.post('/', protect, async (req, res) => {
         checkedAt: new Date()
       }]
     })
+    const { checkAllWLAlerts } = require('../utils/wlChecker')
+
+router.get('/test-checker', async (req, res) => {
+  await checkAllWLAlerts()
+  res.json({ message: 'Checker ran — check terminal' })
+})
 
     await alert.save()
 

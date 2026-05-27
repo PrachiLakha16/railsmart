@@ -144,17 +144,44 @@ function Booking() {
   }
 
   // Handle booking submit
-  const handleSubmit = () => {
-    setError('')
-    if (!validateForm()) return
+  const handleSubmit = async () => {
+  setError('')
+  if (!validateForm()) return
 
-    // Show success — real payment integration would go here
+  try {
+    // Check if any class is waitlisted
+    const isWaitlisted = searchParams.get('waitlistCount') > 0
+
+    // Auto-create WL alert if waitlisted
+    if (isWaitlisted) {
+      await axios.post(
+        'http://localhost:5000/api/wl-alerts',
+        {
+          trainId,
+          trainNumber,
+          trainName,
+          from,
+          to,
+          journeyDate: new Date().toISOString(),
+          selectedClass,
+          currentWLNumber: parseInt(searchParams.get('waitlistCount') || 0),
+          currentConfirmChance: parseInt(searchParams.get('confirmChance') || 50),
+          triggerWhenChanceAbove: 70
+        },
+        { headers: { Authorization: `Bearer ${token}` } }
+      )
+      console.log('WL Alert auto-created for waitlisted booking')
+    }
+
     setSuccess('Booking confirmed! PNR will be generated shortly.')
-    setTimeout(() => {
-      navigate('/')
-    }, 3000)
-  }
+    setTimeout(() => navigate('/'), 3000)
 
+  } catch (err) {
+    // Don't block booking if alert creation fails
+    setSuccess('Booking confirmed! PNR will be generated shortly.')
+    setTimeout(() => navigate('/'), 3000)
+  }
+}
   const totalPrice = price * passengers.length
 
   return (
