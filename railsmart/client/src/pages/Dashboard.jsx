@@ -71,9 +71,16 @@ function Dashboard() {
         { headers: { Authorization: `Bearer ${token}` } }
       )
       setPassengers(res.data.passengers)
-    } catch (err) {
-      setError('Failed to load passengers')
-    }
+   } catch (err) {
+  if (err.response?.status === 401) {
+    // Token expired — redirect to login
+    localStorage.removeItem('token')
+    localStorage.removeItem('user')
+    navigate('/login')
+  } else {
+    setError('Failed to load passengers')
+  }
+}
     setLoadingPassengers(false)
   }
 

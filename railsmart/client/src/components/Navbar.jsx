@@ -28,23 +28,6 @@ function Navbar() {
     const interval = setInterval(fetchNotifications, 30000)
     return () => clearInterval(interval)
   }, [token])
-  // Auto close dropdown after 5 seconds
-useEffect(() => {
-  if (showDropdown) {
-    const timer = setTimeout(() => setShowDropdown(false), 5000)
-    return () => clearTimeout(timer)
-  }
-}, [showDropdown])
-// Close dropdown when clicking outside
-useEffect(() => {
-  const handleClickOutside = (e) => {
-    if (!e.target.closest('.notification-bell')) {
-      setShowDropdown(false)
-    }
-  }
-  document.addEventListener('click', handleClickOutside)
-  return () => document.removeEventListener('click', handleClickOutside)
-}, [])
 
   const fetchNotifications = async () => {
     try {

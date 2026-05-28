@@ -14,17 +14,30 @@ const { checkAllWLAlerts } = require('./utils/wlChecker')
 
 const app = express()
 
+// Middleware
 app.use(cors())
 app.use(express.json())
 
+// MongoDB connection
 mongoose.connect(process.env.MONGO_URI)
   .then(() => {
     console.log('MongoDB connected successfully!')
+    // Start WL checker after DB connects
     setInterval(checkAllWLAlerts, 5 * 60 * 1000)
     console.log('⏰ WL Checker started — runs every 5 minutes')
   })
   .catch((err) => console.log('MongoDB connection error:', err.message))
 
+// Health check
+app.get('/', (req, res) => {
+  res.json({
+    status: 'running',
+    message: 'RailSmart API is running!',
+    version: '1.0.0'
+  })
+})
+
+// Routes
 app.use('/api/auth', authRoutes)
 app.use('/api/trains', trainRoutes)
 app.use('/api/alternate', alternateRoutes)
@@ -33,8 +46,22 @@ app.use('/api/booking', bookingRoutes)
 app.use('/api/wl-alerts', wlAlertRoutes)
 app.use('/api/notifications', notificationRoutes)
 
-app.get('/', (req, res) => {
-  res.send('RailSmart backend running!')
+// 404 handler — unknown routes
+app.use((req, res) => {
+  res.status(404).json({
+    success: false,
+    message: `Route ${req.originalUrl} not found`
+  })
+})
+
+// Global error handler
+app.use((err, req, res, next) => {
+  console.error('Unhandled error:', err.message)
+  res.status(500).json({
+    success: false,
+    message: 'Internal server error',
+    error: process.env.NODE_ENV === 'development' ? err.message : 'Something went wrong'
+  })
 })
 
 const PORT = process.env.PORT || 5000

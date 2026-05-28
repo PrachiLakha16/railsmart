@@ -14,6 +14,28 @@ const ProtectedRoute = ({ children }) => {
   return children
 }
 
+// Simple 404 page
+const NotFound = () => (
+  <div style={{
+    minHeight: '100vh',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#f8f9fa'
+  }}>
+    <div style={{ fontSize: '64px' }}>🚂</div>
+    <h4 className="fw-bold mt-3">Page Not Found</h4>
+    <p className="text-muted">
+      This route doesn't exist on our railway network!
+    </p>
+    <a href="/" className="btn mt-2"
+      style={{ backgroundColor: '#e63946', color: 'white' }}>
+      Back to Home
+    </a>
+  </div>
+)
+
 function App() {
   return (
     <BrowserRouter>
@@ -40,6 +62,8 @@ function App() {
             <Booking />
           </ProtectedRoute>
         } />
+        {/* 404 — catches all unknown routes */}
+        <Route path="*" element={<NotFound />} />
       </Routes>
     </BrowserRouter>
   )
