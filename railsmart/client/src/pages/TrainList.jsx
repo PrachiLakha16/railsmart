@@ -148,7 +148,10 @@ function TrainList() {
       <div className="container mt-4">
 
         {/* Heading */}
-        <h5 className="fw-bold mb-1">{from} to {to} Trains</h5>
+       <h5 className="fw-bold mb-1">
+  {from?.charAt(0).toUpperCase() + from?.slice(1).toLowerCase()} to{' '}
+  {to?.charAt(0).toUpperCase() + to?.slice(1).toLowerCase()} Trains
+</h5>
         <p className="text-muted small mb-3">Showing trains for {selectedDate}</p>
 
         {/* Date Strip */}

@@ -62,35 +62,35 @@ function Home() {
   }
 
   const features = [
-    {
-      icon: '🔀',
-      title: 'Alternate Routes',
-      desc: 'Find routes when direct trains are full or waitlisted',
-      color: '#ede9fe',
-      iconColor: '#7c3aed'
-    },
-    {
-      icon: '💰',
-      title: 'Cheapest Route',
-      desc: 'Save money with smart multi-train route suggestions',
-      color: '#dcfce7',
-      iconColor: '#16a34a'
-    },
-    {
-      icon: '🔔',
-      title: 'Smart WL Alerts',
-      desc: 'Get notified when your waitlist confirmation improves',
-      color: '#fef9c3',
-      iconColor: '#ca8a04'
-    },
-    {
-      icon: '⚡',
-      title: 'Tatkal Autofill',
-      desc: 'Book Tatkal tickets in seconds with saved passengers',
-      color: '#fee2e2',
-      iconColor: '#dc2626'
-    }
-  ]
+  {
+    icon: '🔀',
+    title: 'Alternate Routes',
+    desc: 'Find routes when direct trains are full or waitlisted',
+    bgColor: '#fee2e2',
+    iconColor: '#dc2626'
+  },
+  {
+    icon: '💰',
+    title: 'Cheapest Route',
+    desc: 'Save money with smart multi-train route suggestions',
+    bgColor: '#dcfce7',
+    iconColor: '#16a34a'
+  },
+  {
+    icon: '🔔',
+    title: 'Smart WL Alerts',
+    desc: 'Get notified when WL confirmation chance drops',
+    bgColor: '#fef3c7',
+    iconColor: '#d97706'
+  },
+  {
+    icon: '⚡',
+    title: 'Tatkal Autofill',
+    desc: 'Book Tatkal tickets in seconds with saved passengers',
+    bgColor: '#ede9fe',
+    iconColor: '#7c3aed'
+  }
+]
 
   return (
     <div style={{ backgroundColor: '#f8f9fa', minHeight: '100vh' }}>
@@ -253,46 +253,49 @@ function Home() {
 
         {/* Feature Cards */}
         <div className="row mt-4 g-3">
-          {features.map((feature, index) => (
-            <div key={index} className="col-md-3">
-              <div
-                className="card p-3 text-center border-0 shadow-sm h-100"
-                style={{
-                  borderRadius: '12px',
-                  transition: 'transform 0.2s, box-shadow 0.2s',
-                  cursor: 'default'
-                }}
-                onMouseEnter={e => {
-                  e.currentTarget.style.transform = 'translateY(-3px)'
-                  e.currentTarget.style.boxShadow = '0 6px 20px rgba(0,0,0,0.1)'
-                }}
-                onMouseLeave={e => {
-                  e.currentTarget.style.transform = 'translateY(0)'
-                  e.currentTarget.style.boxShadow = ''
-                }}
-              >
-                <div
-                  className="mx-auto mb-2 d-flex align-items-center justify-content-center"
-                  style={{
-                    width: '48px',
-                    height: '48px',
-                    borderRadius: '12px',
-                    backgroundColor: feature.color,
-                    fontSize: '22px'
-                  }}
-                >
-                  {feature.icon}
-                </div>
-                <div className="fw-semibold" style={{ fontSize: '14px' }}>
-                  {feature.title}
-                </div>
-                <div className="text-muted mt-1" style={{ fontSize: '12px' }}>
-                  {feature.desc}
-                </div>
-              </div>
-            </div>
-          ))}
+  {features.map((feature, index) => (
+    <div key={index} className="col-md-3">
+      <div
+        className="card border-0 shadow-sm h-100 p-3 text-center"
+        style={{
+          borderRadius: '14px',
+          transition: 'transform 0.2s, box-shadow 0.2s',
+          cursor: 'default'
+        }}
+        onMouseEnter={e => {
+          e.currentTarget.style.transform = 'translateY(-4px)'
+          e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.1)'
+        }}
+        onMouseLeave={e => {
+          e.currentTarget.style.transform = 'translateY(0)'
+          e.currentTarget.style.boxShadow = ''
+        }}
+      >
+        <div
+          className="mx-auto mb-3"
+          style={{
+            width: '48px',
+            height: '48px',
+            borderRadius: '12px',
+            backgroundColor: feature.bgColor,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '22px'
+          }}
+        >
+          {feature.icon}
         </div>
+        <div style={{ fontWeight: '600', fontSize: '14px', color: '#111827' }}>
+          {feature.title}
+        </div>
+        <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '4px', lineHeight: '1.5' }}>
+          {feature.desc}
+        </div>
+      </div>
+    </div>
+  ))}
+</div>
 
       </div>
     </div>

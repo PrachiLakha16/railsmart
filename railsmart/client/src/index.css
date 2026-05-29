@@ -109,4 +109,46 @@ body {
 .date-strip {
   overflow-x: auto;
   scrollbar-width: thin;
+  /* Better form focus color */
+.form-control:focus,
+.form-select:focus {
+  border-color: #e63946 !important;
+  box-shadow: 0 0 0 3px rgba(230, 57, 70, 0.1) !important;
+}
+
+/* Consistent button hover */
+.btn:hover {
+  opacity: 0.92;
+}
+
+/* Better link color */
+a {
+  color: #e63946;
+  text-decoration: none;
+}
+a:hover {
+  color: #c1121f;
+  text-decoration: underline;
+}
+
+/* Card consistent radius */
+.card {
+  border-radius: 12px !important;
+}
+
+/* Badge pill style */
+.badge {
+  font-weight: 500;
+  letter-spacing: 0.2px;
+}
+
+/* Better table styling */
+.table {
+  font-size: 14px;
+}
+
+/* Smooth page transitions */
+.container {
+  animation: fadeIn 0.2s ease;
+}
 }
