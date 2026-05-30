@@ -199,20 +199,20 @@ function Navbar() {
                 </button>
 
                 {/* Notification Dropdown */}
-                {showDropdown && (
-                  <div style={{
-                    position: 'absolute',
-                    right: 0,
-                    top: '40px',
-                    width: '340px',
-                    backgroundColor: 'white',
-                    border: '1px solid #e5e7eb',
-                    borderRadius: '12px',
-                    boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
-                    zIndex: 1000,
-                    maxHeight: '400px',
-                    overflowY: 'auto'
-                  }}>
+               {showDropdown && (
+  <div style={{
+    position: 'fixed',
+    right: '12px',
+    top: '60px',
+    width: 'min(340px, calc(100vw - 24px))',
+    backgroundColor: 'white',
+    border: '1px solid #e5e7eb',
+    borderRadius: '12px',
+    boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+    zIndex: 1000,
+    maxHeight: '400px',
+    overflowY: 'auto'
+  }}>
                     {/* Header */}
                     <div className="d-flex justify-content-between align-items-center p-3"
                       style={{ borderBottom: '1px solid #f3f4f6' }}>
