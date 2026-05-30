@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import Navbar from '../components/Navbar'
 import TrainCard from '../components/TrainCard'
@@ -20,13 +20,18 @@ function TrainList() {
   const [trains, setTrains] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [maxPrice, setMaxPrice] = useState(5000)
+
+  // Filters
   const [sortBy, setSortBy] = useState('recommended')
   const [departureFilter, setDepartureFilter] = useState([])
+  const [classFilter, setClassFilter] = useState([])
+  const [priceRange, setPriceRange] = useState([0, 5000])
   const [showAlternate, setShowAlternate] = useState(showCheapest)
   const [alternateRoutes, setAlternateRoutes] = useState([])
   const [loadingAlternate, setLoadingAlternate] = useState(false)
 
-  // Fetch direct trains from backend
+  // Fetch direct trains
   useEffect(() => {
     const fetchTrains = async () => {
       try {
@@ -35,7 +40,19 @@ function TrainList() {
         const res = await axios.get(
           `http://localhost:5000/api/trains/search?from=${from}&to=${to}&class=${selectedClass}`
         )
-        setTrains(res.data.trains)
+        const fetchedTrains = res.data.trains
+
+        // Calculate max price
+        let max = 0
+        fetchedTrains.forEach(train => {
+          train.classes.forEach(cls => {
+            if (cls.price > max) max = cls.price
+          })
+        })
+        const roundedMax = Math.ceil(max / 500) * 500 || 5000
+        setMaxPrice(roundedMax)
+        setPriceRange([0, roundedMax])
+        setTrains(fetchedTrains)
       } catch (err) {
         setError(err.response?.data?.message || 'No trains found for this route')
         setTrains([])
@@ -63,7 +80,7 @@ function TrainList() {
     fetchAlternateRoutes()
   }, [showAlternate, from, to, sortBy])
 
-  // Generate 10 days from original search date
+  // Generate 10 days
   const generateDates = () => {
     const dates = []
     for (let i = 0; i < 10; i++) {
@@ -78,7 +95,6 @@ function TrainList() {
     return dates
   }
 
-  // Handle date click
   const handleDateClick = (dateStr) => {
     setSelectedDate(dateStr)
     navigate(
@@ -87,10 +103,23 @@ function TrainList() {
     )
   }
 
-  // Sort and filter trains
-  const getSortedTrains = () => {
+  const resetFilters = () => {
+    setSortBy('recommended')
+    setDepartureFilter([])
+    setClassFilter([])
+    setPriceRange([0, maxPrice])
+  }
+
+  const hasActiveFilters = sortBy !== 'recommended' ||
+    departureFilter.length > 0 ||
+    classFilter.length > 0 ||
+    priceRange[1] < maxPrice
+
+  // Sort and filter — useMemo ensures it reruns when any filter changes
+  const sortedTrains = useMemo(() => {
     let filtered = trains.filter(t => !t.isAlternate)
 
+    // Departure time filter
     if (departureFilter.length > 0) {
       filtered = filtered.filter(train => {
         const hour = parseInt(train.departureTime.split(':')[0])
@@ -104,6 +133,21 @@ function TrainList() {
       })
     }
 
+    // Class filter
+    if (classFilter.length > 0) {
+      filtered = filtered.filter(train =>
+        train.classes.some(cls => classFilter.includes(cls.className))
+      )
+    }
+
+    // Price range filter
+    filtered = filtered.filter(train =>
+      train.classes.some(cls =>
+        cls.price >= priceRange[0] && cls.price <= priceRange[1]
+      )
+    )
+
+    // Sorting
     if (sortBy === 'cheapest') {
       return [...filtered].sort((a, b) => {
         const aPrice = Math.min(...a.classes.map(c => c.price))
@@ -138,8 +182,16 @@ function TrainList() {
       })
     }
 
+    if (sortBy === 'availability') {
+      return [...filtered].sort((a, b) => {
+        const getAvail = (train) =>
+          train.classes.filter(c => c.availableSeats > 0).length
+        return getAvail(b) - getAvail(a)
+      })
+    }
+
     return filtered
-  }
+  }, [trains, departureFilter, classFilter, priceRange, sortBy, selectedClass])
 
   return (
     <div style={{ backgroundColor: '#f8f9fa', minHeight: '100vh' }}>
@@ -148,10 +200,17 @@ function TrainList() {
       <div className="container mt-4">
 
         {/* Heading */}
-       <h5 className="fw-bold mb-1">
-  {from?.charAt(0).toUpperCase() + from?.slice(1).toLowerCase()} to{' '}
-  {to?.charAt(0).toUpperCase() + to?.slice(1).toLowerCase()} Trains
-</h5>
+        <div className="d-flex justify-content-between align-items-center mb-1">
+          <h5 className="fw-bold mb-0">
+            {from?.charAt(0).toUpperCase() + from?.slice(1).toLowerCase()} to{' '}
+            {to?.charAt(0).toUpperCase() + to?.slice(1).toLowerCase()} Trains
+          </h5>
+          {!loading && sortedTrains.length > 0 && (
+            <span className="text-muted small">
+              {sortedTrains.length} train{sortedTrains.length !== 1 ? 's' : ''} found
+            </span>
+          )}
+        </div>
         <p className="text-muted small mb-3">Showing trains for {selectedDate}</p>
 
         {/* Date Strip */}
@@ -186,19 +245,47 @@ function TrainList() {
 
           {/* Filter Panel */}
           <div className="col-md-3">
-            <div className="card shadow-sm p-3">
-              <h6 className="fw-bold mb-3">Filters</h6>
+            <div className="card shadow-sm p-3" style={{ borderRadius: '12px' }}>
+
+              {/* Filter Header */}
+              <div className="d-flex justify-content-between align-items-center mb-3">
+                <h6 className="fw-bold mb-0">Filters</h6>
+                {hasActiveFilters && (
+                  <button
+                    className="btn btn-sm"
+                    style={{
+                      fontSize: '11px',
+                      color: '#e63946',
+                      padding: '2px 8px',
+                      border: '1px solid #e63946',
+                      borderRadius: '6px'
+                    }}
+                    onClick={resetFilters}
+                  >
+                    Reset
+                  </button>
+                )}
+              </div>
+
+              {/* Active filter warning */}
+              {hasActiveFilters && (
+                <div className="mb-3 p-2 rounded"
+                  style={{ backgroundColor: '#fff5f5', fontSize: '11px', color: '#e63946' }}>
+                  🔴 Filters active — some trains may be hidden
+                </div>
+              )}
 
               {/* Sort By */}
-              <div className="mb-3">
+              <div className="mb-3 pb-3 border-bottom">
                 <div className="fw-semibold small mb-2">Sort By</div>
                 {[
-                  { value: 'recommended', label: 'Recommended' },
+                  { value: 'recommended', label: '⭐ Recommended' },
                   { value: 'cheapest', label: '💰 Cheapest First' },
                   { value: 'fastest', label: '⚡ Fastest First' },
-                  { value: 'wlChance', label: '🎯 WL Probability', sub: 'by your class' }
+                  { value: 'wlChance', label: '🎯 WL Probability', sub: 'by your class' },
+                  { value: 'availability', label: '✅ Best Availability' }
                 ].map(option => (
-                  <div key={option.value} className="form-check">
+                  <div key={option.value} className="form-check mb-1">
                     <input
                       type="radio"
                       className="form-check-input"
@@ -220,23 +307,95 @@ function TrainList() {
                 ))}
               </div>
 
+              {/* Price Range */}
+              <div className="mb-3 pb-3 border-bottom">
+                <div className="d-flex justify-content-between align-items-center mb-2">
+                  <div className="fw-semibold small">Price Range</div>
+                  <div className="small text-muted">
+                    ₹0 — ₹{priceRange[1].toLocaleString()}
+                  </div>
+                </div>
+                <input
+                  type="range"
+                  className="form-range"
+                  min={0}
+                  max={maxPrice}
+                  step={100}
+                  value={priceRange[1]}
+                  onChange={(e) => setPriceRange([0, parseInt(e.target.value)])}
+                  style={{ accentColor: '#e63946' }}
+                />
+                <div className="d-flex justify-content-between"
+                  style={{ fontSize: '10px', color: '#9ca3af' }}>
+                  <span>₹0</span>
+                  <span>₹{maxPrice.toLocaleString()}</span>
+                </div>
+                {priceRange[1] < maxPrice && (
+                  <div className="small mt-1" style={{ color: '#e63946', fontSize: '11px' }}>
+                    Showing trains with class under ₹{priceRange[1].toLocaleString()}
+                  </div>
+                )}
+              </div>
+
+              {/* Class Filter */}
+              <div className="mb-3 pb-3 border-bottom">
+                <div className="fw-semibold small mb-2">Train Class</div>
+                <div className="d-flex flex-wrap gap-1">
+                  {['SL', '3A', '2A', '1A'].map(cls => (
+                    <div
+                      key={cls}
+                      onClick={() => {
+                        setClassFilter(prev =>
+                          prev.includes(cls)
+                            ? prev.filter(c => c !== cls)
+                            : [...prev, cls]
+                        )
+                      }}
+                      style={{
+                        cursor: 'pointer',
+                        padding: '4px 12px',
+                        borderRadius: '20px',
+                        fontSize: '12px',
+                        fontWeight: '500',
+                        border: '1px solid',
+                        borderColor: classFilter.includes(cls) ? '#e63946' : '#dee2e6',
+                        backgroundColor: classFilter.includes(cls) ? '#e63946' : 'white',
+                        color: classFilter.includes(cls) ? 'white' : '#374151',
+                        transition: 'all 0.15s',
+                        userSelect: 'none'
+                      }}
+                    >
+                      {cls}
+                    </div>
+                  ))}
+                </div>
+                {classFilter.length > 0 && (
+                  <div className="small mt-1" style={{ color: '#e63946', fontSize: '11px' }}>
+                    Showing: {classFilter.join(', ')} only
+                  </div>
+                )}
+              </div>
+
               {/* Departure Time */}
-              <div className="mb-3">
+              <div className="mb-3 pb-3 border-bottom">
                 <div className="fw-semibold small mb-2">Departure Time</div>
                 <div className="row g-1">
                   {[
-                    { label: 'Early Morning', sub: '00:00 - 06:00', value: 'early' },
-                    { label: 'Morning', sub: '06:00 - 12:00', value: 'morning' },
-                    { label: 'Afternoon', sub: '12:00 - 18:00', value: 'afternoon' },
-                    { label: 'Night', sub: '18:00 - 24:00', value: 'night' }
+                    { label: 'Early Morning', sub: '00:00-06:00', value: 'early', icon: '🌙' },
+                    { label: 'Morning', sub: '06:00-12:00', value: 'morning', icon: '🌅' },
+                    { label: 'Afternoon', sub: '12:00-18:00', value: 'afternoon', icon: '☀️' },
+                    { label: 'Night', sub: '18:00-24:00', value: 'night', icon: '🌆' }
                   ].map(slot => (
                     <div key={slot.value} className="col-6">
                       <div
-                        className="border rounded p-1 text-center small"
+                        className="border rounded p-1 text-center"
                         style={{
                           cursor: 'pointer',
                           backgroundColor: departureFilter.includes(slot.value) ? '#e63946' : 'white',
-                          color: departureFilter.includes(slot.value) ? 'white' : 'black'
+                          color: departureFilter.includes(slot.value) ? 'white' : '#374151',
+                          transition: 'all 0.15s',
+                          borderColor: departureFilter.includes(slot.value) ? '#e63946' : '#dee2e6',
+                          userSelect: 'none'
                         }}
                         onClick={() => {
                           setDepartureFilter(prev =>
@@ -246,16 +405,17 @@ function TrainList() {
                           )
                         }}
                       >
-                        <div className="fw-semibold">{slot.label}</div>
-                        <div style={{ fontSize: '10px' }}>{slot.sub}</div>
+                        <div style={{ fontSize: '14px' }}>{slot.icon}</div>
+                        <div style={{ fontSize: '10px', fontWeight: '600' }}>{slot.label}</div>
+                        <div style={{ fontSize: '9px', opacity: 0.8 }}>{slot.sub}</div>
                       </div>
                     </div>
                   ))}
                 </div>
               </div>
 
-              {/* Alternate Routes Toggle */}
-              <div className="border-top pt-3">
+              {/* Alternate Routes */}
+              <div>
                 <div className="fw-semibold small mb-2">🔀 Alternate Routes</div>
                 <div className="form-check form-switch">
                   <input
@@ -270,8 +430,8 @@ function TrainList() {
                   </label>
                 </div>
                 {showAlternate && (
-                  <div className="small text-muted mt-1">
-                    Showing trains via alternate stations
+                  <div className="small text-muted mt-1" style={{ fontSize: '11px' }}>
+                    Showing high-chance connecting routes
                   </div>
                 )}
               </div>
@@ -282,7 +442,6 @@ function TrainList() {
           {/* Train Cards + Alternate Routes */}
           <div className="col-md-9">
 
-            {/* Direct Trains */}
             {loading ? (
               <div className="text-center mt-5">
                 <div className="spinner-border text-danger" role="status"></div>
@@ -290,7 +449,7 @@ function TrainList() {
               </div>
             ) : error ? (
               <div className="card p-4 text-center border-0 mt-3"
-                style={{ backgroundColor: '#fff5f5' }}>
+                style={{ backgroundColor: '#fff5f5', borderRadius: '12px' }}>
                 <div style={{ fontSize: '32px' }}>🚂</div>
                 <div className="fw-semibold mt-2">No trains found</div>
                 <div className="text-muted small mt-1">{error}</div>
@@ -298,20 +457,28 @@ function TrainList() {
                   Check spelling of station names or try a different route
                 </div>
               </div>
-            ) : getSortedTrains().length === 0 ? (
+            ) : sortedTrains.length === 0 ? (
               <div className="card p-4 text-center border-0 mt-3"
-                style={{ backgroundColor: '#fff5f5' }}>
-                <div style={{ fontSize: '32px' }}>🚂</div>
-                <div className="fw-semibold mt-2">No trains found</div>
+                style={{ backgroundColor: '#fff5f5', borderRadius: '12px' }}>
+                <div style={{ fontSize: '32px' }}>🔍</div>
+                <div className="fw-semibold mt-2">No trains match filters</div>
                 <div className="text-muted small mt-1">
-                  No trains match your current filters
+                  Try adjusting price range, class or departure time
                 </div>
-                <div className="text-muted small mt-1">
-                  Try changing departure time filter or class
-                </div>
+                <button
+                  className="btn btn-sm mt-2"
+                  style={{
+                    border: '1px solid #e63946',
+                    color: '#e63946',
+                    borderRadius: '8px'
+                  }}
+                  onClick={resetFilters}
+                >
+                  Reset Filters
+                </button>
               </div>
             ) : (
-              getSortedTrains().map(train => (
+              sortedTrains.map(train => (
                 <TrainCard key={train._id} train={train} />
               ))
             )}
@@ -323,9 +490,7 @@ function TrainList() {
                 {loadingAlternate ? (
                   <div className="text-center mt-3">
                     <div className="spinner-border text-warning" role="status"></div>
-                    <p className="mt-2 text-muted small">
-                      Finding best alternate routes...
-                    </p>
+                    <p className="mt-2 text-muted small">Finding best alternate routes...</p>
                   </div>
                 ) : alternateRoutes.length > 0 ? (
                   alternateRoutes.map((route, index) => (
@@ -333,11 +498,9 @@ function TrainList() {
                   ))
                 ) : (
                   <div className="card p-4 text-center border-0"
-                    style={{ backgroundColor: '#fef9ec' }}>
+                    style={{ backgroundColor: '#fef9ec', borderRadius: '12px' }}>
                     <div style={{ fontSize: '32px' }}>🔍</div>
-                    <div className="fw-semibold mt-2">
-                      No alternate routes found
-                    </div>
+                    <div className="fw-semibold mt-2">No alternate routes found</div>
                     <div className="text-muted small mt-1">
                       All connecting routes have low confirmation chances
                       or don't meet timing constraints
