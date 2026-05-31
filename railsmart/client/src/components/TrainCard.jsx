@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom'
+import { wlAlertAPI } from '../services/api'
 
 function TrainCard({ train }) {
   const navigate = useNavigate()
@@ -27,7 +28,7 @@ function TrainCard({ train }) {
     }
 
     try {
-      const res = await fetch('http://localhost:5000/api/wl-alerts', {
+      const res = await fetch('wlAlertAPI.create(...)', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
