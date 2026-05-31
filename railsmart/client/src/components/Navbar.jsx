@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
-import axios from 'axios'
+import { notificationAPI } from '../services/api'
 
 function Navbar() {
   const navigate = useNavigate()
@@ -21,7 +21,6 @@ function Navbar() {
   const isOnTrainPage = location.pathname === '/' ||
     location.pathname === '/trains'
 
-  // Fetch notifications every 30 seconds
   useEffect(() => {
     if (!token) return
     fetchNotifications()
@@ -29,16 +28,31 @@ function Navbar() {
     return () => clearInterval(interval)
   }, [token])
 
+  // Auto close dropdown after 5 seconds
+  useEffect(() => {
+    if (showDropdown) {
+      const timer = setTimeout(() => setShowDropdown(false), 5000)
+      return () => clearTimeout(timer)
+    }
+  }, [showDropdown])
+
+  // Close on outside click
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (!e.target.closest('.notification-bell')) {
+        setShowDropdown(false)
+      }
+    }
+    document.addEventListener('click', handleClickOutside)
+    return () => document.removeEventListener('click', handleClickOutside)
+  }, [])
+
   const fetchNotifications = async () => {
     try {
-      const res = await axios.get(
-        'http://localhost:5000/api/notifications',
-        { headers: { Authorization: `Bearer ${token}` } }
-      )
+      const res = await notificationAPI.getAll()
       const newUnread = res.data.unreadCount
       const newNotifications = res.data.notifications
 
-      // Show toast if new notification arrived
       if (newUnread > unreadCount && newNotifications.length > 0) {
         const latest = newNotifications[0]
         if (!latest.isRead) {
@@ -62,11 +76,7 @@ function Navbar() {
 
   const markAsRead = async (notificationId) => {
     try {
-      await axios.put(
-        `http://localhost:5000/api/notifications/${notificationId}/read`,
-        {},
-        { headers: { Authorization: `Bearer ${token}` } }
-      )
+      await notificationAPI.markRead(notificationId)
       setNotifications(prev =>
         prev.map(n => n._id === notificationId ? { ...n, isRead: true } : n)
       )
@@ -76,11 +86,7 @@ function Navbar() {
 
   const markAllRead = async () => {
     try {
-      await axios.put(
-        'http://localhost:5000/api/notifications/mark-all-read',
-        {},
-        { headers: { Authorization: `Bearer ${token}` } }
-      )
+      await notificationAPI.markAllRead()
       setNotifications(prev => prev.map(n => ({ ...n, isRead: true })))
       setUnreadCount(0)
     } catch (err) { }
@@ -88,10 +94,7 @@ function Navbar() {
 
   const clearAll = async () => {
     try {
-      await axios.delete(
-        'http://localhost:5000/api/notifications/clear-all',
-        { headers: { Authorization: `Bearer ${token}` } }
-      )
+      await notificationAPI.clearAll()
       setNotifications([])
       setUnreadCount(0)
       setShowDropdown(false)
@@ -107,7 +110,7 @@ function Navbar() {
 
   return (
     <>
-      {/* Toast Notification */}
+      {/* Toast */}
       {toast && (
         <div style={{
           position: 'fixed',
@@ -169,8 +172,8 @@ function Navbar() {
         <div className="d-flex align-items-center gap-3">
           {user ? (
             <>
-              {/* Notification Bell */}
-              <div style={{ position: 'relative' }}>
+              {/* Bell */}
+              <div style={{ position: 'relative' }} className="notification-bell">
                 <button
                   className="btn btn-sm btn-outline-secondary"
                   style={{ position: 'relative', padding: '4px 10px' }}
@@ -198,22 +201,20 @@ function Navbar() {
                   )}
                 </button>
 
-                {/* Notification Dropdown */}
-               {showDropdown && (
-  <div style={{
-    position: 'fixed',
-    right: '12px',
-    top: '60px',
-    width: 'min(340px, calc(100vw - 24px))',
-    backgroundColor: 'white',
-    border: '1px solid #e5e7eb',
-    borderRadius: '12px',
-    boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
-    zIndex: 1000,
-    maxHeight: '400px',
-    overflowY: 'auto'
-  }}>
-                    {/* Header */}
+                {showDropdown && (
+                  <div style={{
+                    position: 'fixed',
+                    right: '12px',
+                    top: '60px',
+                    width: 'min(340px, calc(100vw - 24px))',
+                    backgroundColor: 'white',
+                    border: '1px solid #e5e7eb',
+                    borderRadius: '12px',
+                    boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+                    zIndex: 1000,
+                    maxHeight: '400px',
+                    overflowY: 'auto'
+                  }}>
                     <div className="d-flex justify-content-between align-items-center p-3"
                       style={{ borderBottom: '1px solid #f3f4f6' }}>
                       <span className="fw-semibold small">
@@ -226,27 +227,22 @@ function Navbar() {
                       </span>
                       <div className="d-flex gap-2">
                         {unreadCount > 0 && (
-                          <button
-                            className="btn btn-sm"
+                          <button className="btn btn-sm"
                             style={{ fontSize: '11px', padding: '2px 8px' }}
-                            onClick={markAllRead}
-                          >
+                            onClick={markAllRead}>
                             Mark all read
                           </button>
                         )}
                         {notifications.length > 0 && (
-                          <button
-                            className="btn btn-sm btn-outline-danger"
+                          <button className="btn btn-sm btn-outline-danger"
                             style={{ fontSize: '11px', padding: '2px 8px' }}
-                            onClick={clearAll}
-                          >
+                            onClick={clearAll}>
                             Clear all
                           </button>
                         )}
                       </div>
                     </div>
 
-                    {/* Notifications List */}
                     {notifications.length === 0 ? (
                       <div className="text-center py-4 text-muted small">
                         No notifications yet
@@ -287,8 +283,7 @@ function Navbar() {
                             style={{ fontSize: '11px', lineHeight: '1.4' }}>
                             {notification.message}
                           </div>
-                          <div className="text-muted mt-1"
-                            style={{ fontSize: '10px' }}>
+                          <div className="text-muted mt-1" style={{ fontSize: '10px' }}>
                             {new Date(notification.createdAt).toLocaleString('en-IN')}
                           </div>
                         </div>

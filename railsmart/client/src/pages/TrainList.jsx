@@ -3,7 +3,7 @@ import { useSearchParams, useNavigate } from 'react-router-dom'
 import Navbar from '../components/Navbar'
 import TrainCard from '../components/TrainCard'
 import AlternateRouteCard from '../components/AlternateRouteCard'
-import axios from 'axios'
+import { trainAPI, alternateAPI } from '../services/api'
 
 function TrainList() {
   const [searchParams] = useSearchParams()
@@ -37,9 +37,8 @@ function TrainList() {
       try {
         setLoading(true)
         setError('')
-        const res = await axios.get(
-          `http://localhost:5000/api/trains/search?from=${from}&to=${to}&class=${selectedClass}`
-        )
+       // Direct trains
+const res = await trainAPI.search(from, to, selectedClass)
         const fetchedTrains = res.data.trains
 
         // Calculate max price
@@ -68,9 +67,7 @@ function TrainList() {
       if (!showAlternate) return
       try {
         setLoadingAlternate(true)
-        const res = await axios.get(
-          `http://localhost:5000/api/alternate?source=${from}&destination=${to}&sortBy=${sortBy}`
-        )
+       const res = await alternateAPI.find(from, to, sortBy)
         setAlternateRoutes(res.data.alternateRoutes || [])
       } catch (err) {
         setAlternateRoutes([])
