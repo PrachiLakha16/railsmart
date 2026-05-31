@@ -68,3 +68,17 @@ const PORT = process.env.PORT || 5000
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`)
 })
+const corsOptions = {
+  origin: [
+    'http://localhost:5173',
+    'https://railsmart-c905uh47v-prachilakha16s-projects.vercel.app',
+    /\.vercel\.app$/
+  ],
+  credentials: true
+}
+
+app.use(cors(corsOptions))
+
+app.use(cors(corsOptions))
+//railsmart-git-main-prachilakha16s-projects.vercel.app
+//railsmart-c905uh47v-prachilakha16s-projects.vercel.app
